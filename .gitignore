@@ -1,3 +1,20 @@
+# Project
+.vscode/
+build/
+deps/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.prof
+*.manifest
+*.spec
+
+# Scratch
+*.sb3
+*.sprite3
+
 # Prerequisites
 *.d
 
