@@ -88,7 +88,7 @@ I don't plan any support for audio for a while!
 | Wait until `condition` | - | ❌ |  |
 | Repeat until `condition` | - | ✔️ |  |
 | While `condition` | - | ✔️ |  |
-| Stop `all` | - | ✔️ | Only stop all scripts. |
+| Stop `all` | - | ✔️ | Only for exiting the program. |
 | When I start as a clone | - | ❌ |  |
 | Create clone of `myself` | - | ❌ |  |
 | Delete this clone | - | ❌ |  |
@@ -103,16 +103,16 @@ I don't plan any support for audio for a while!
 | Ask `something` and wait | - | ❌ |  |
 | Answer | - | ❌ |  |
 | Key `space` pressed? | - | ❌ |  |
-| Mouse down? | - | ❌ |  |
-| Mouse x | - | ❌ |  |
-| Mouse y | - | ❌ |  |
+| Mouse down? | `mouse_pressed` | ✔️ |  |
+| Mouse x | `mouse_x` | ✔️ |  |
+| Mouse y | `mouse_y` | ✔️ |  |
 | Set drag mode `draggable` | - | ❌ |  |
 | Loudness | - | ❌ |  |
-| Timer | - | ❌ |  |
-| Reset timer | - | ❌ |  |
+| Timer | - | ✔️ |  |
+| Reset timer | - | ✔️ |  |
 | `value` of `target` | - | ❌ |  |
 | Current `date` | `sc_curent_date()` | ✔️ |  |
-| Days since 2000 | - | ❌ |  |
+| Days since 2000 | `sc_days_since_2000()` | ✔️ |  |
 | Username | `sc_username()` | ✔️ | Currently just an empty string. |
 
 ## Operators
@@ -140,6 +140,8 @@ I don't plan any support for audio for a while!
 ## Variables
 | Scratch | C | Implemented | Notes |
 |------------------------|----------------------------|:----------:|-------------------------------------------|
+| Set `var` to `0` | - | ❌ |  |
+| Change `var` by `1` | - | ❌ |  |
 | Show variable `var` | - | ❌ |  |
 | Hide variable `var` | - | ❌ |  |
 

@@ -19,8 +19,6 @@
 /**
  * @brief Show sprite.
  * 
- * Category: Looks
- * 
  * @param sprite Sprite
  */
 static inline void SC_FASTCALL scSprite_show(scSprite *sprite) {
@@ -29,8 +27,6 @@ static inline void SC_FASTCALL scSprite_show(scSprite *sprite) {
 
 /**
  * @brief Hide sprite.
- * 
- * Category: Looks
  * 
  * @param sprite 
  */

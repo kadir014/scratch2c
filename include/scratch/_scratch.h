@@ -26,8 +26,10 @@
 #include "scratch/types.h"
 
 
-#ifdef SC_PLATFORM_WEB
+#if defined(SC_PLATFORM_WEB)
     #include <emscripten.h>
+#elif defined(SC_PLATFORM_WINDOWS)
+    #include <windows.h>
 #endif
 
 #ifdef SC_PLATFORM_WEB

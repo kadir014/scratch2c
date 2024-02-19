@@ -26,7 +26,7 @@ os.mkdir(BUILD_PATH)
 os.chdir(BUILD_PATH)
 
 compiler = "gcc"
-options = "-std=gnu11 -O3 -Wall -march=native"
+options = "-std=c11 -g3 -Wall -march=native"
 binary = "project.exe"
 
 libs = [
@@ -57,10 +57,10 @@ if os.path.exists(binary):
     shutil.copyfile(BASE_PATH / "deps" / "bin" / "SDL2_image" / "SDL2_image.dll", BUILD_PATH / "SDL2_image.dll")
 
     os.mkdir(BUILD_PATH / "assets")
-    for *_, files in os.walk("assets"):
+    for *_, files in os.walk(BASE_PATH / "assets"):
         for file in files:
             shutil.copyfile(
-                "assets" / file,
+                BASE_PATH / "assets" / file,
                 BUILD_PATH / "assets" / file
             )
 

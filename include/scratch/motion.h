@@ -19,8 +19,6 @@
 /**
  * @brief Move sprite towards its direction.
  * 
- * Category: Motion
- * 
  * @param sprite Sprite
  * @param steps Pixels to move
  */
@@ -32,8 +30,6 @@ static inline void SC_FASTCALL scSprite_move(scSprite *sprite, sc_real steps) {
 
 /**
  * @brief Change sprite's locattion
- * 
- * Category: Motion
  * 
  * @param sprite Sprite
  * @param x New X position

@@ -21,66 +21,29 @@
 #include "scratch/scratch.h"
 
 
+/* Global project configuration */
+
 scProject project;
+scEngine *engine;
 
 
-void sdl_init() {
-    if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-	    fprintf(stderr, "SDL initialization error: %s\n", SDL_GetError());
-        exit(EXIT_FAILURE);
-	}
+/* Global (stage) variables */
 
-    if (TTF_Init() != 0) {
-	    fprintf(stderr, "SDL_ttf initialization error: %s\n", TTF_GetError());
-        exit(EXIT_FAILURE);
-	}
+scVariable var;
 
-    sc_uint32 img_init_flags = IMG_INIT_PNG | IMG_INIT_JPG;
-    if (!(IMG_Init(img_init_flags) & img_init_flags)) {
-	    fprintf(stderr, "SDL_image initialization error: %s\n", IMG_GetError());
-        exit(EXIT_FAILURE);
-	}
-}
 
-void sdl_quit() {
-    SDL_Quit();
-    TTF_Quit();
-    IMG_Quit();
+/* Custom blocks (procedures) */
+
+static inline void SC_FASTCALL SomeCustomBlock(scVariable a, scVariable b) {
+    if (b.value_int) {
+        var.value_real = a.value_real;
+    }
 }
 
 
 int main(int argc, char **argv) {
     project = scProject_default;
-
-    sdl_init();
-
-    SDL_Window *window = SDL_CreateWindow(
-        "Scratch2C Window",
-        SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED,
-        project.stage_width,
-        project.stage_height,
-        SDL_WINDOW_SHOWN
-    );
-    if (!window) {
-        fprintf(stderr, SDL_GetError());
-        sdl_quit();
-        return EXIT_FAILURE;
-    }
-
-    SDL_Renderer *renderer = SDL_CreateRenderer(
-        window,
-        -1,
-        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
-    );
-    if (!renderer) {
-        SDL_DestroyWindow(window);
-        sdl_quit();
-        fprintf(stderr, SDL_GetError());
-        return EXIT_FAILURE;
-    };
-
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    engine = scEngine_new(project);
 
     scSprite target0 = {
         .x=0.0,
@@ -90,8 +53,44 @@ int main(int argc, char **argv) {
         .draggable=true,
         .current_costume = 0
     };
+    target0.max_costumes = 1;
+    target0.costumes[0] = (scCostume){
+        .filename="asset.png",
+        .texture=NULL
+    };
 
-    sdl_quit();
+    bool is_running = true;
+
+    double clock_frequency = (double)SDL_GetPerformanceFrequency();
+    double clock_start = (double)SDL_GetPerformanceCounter() / clock_frequency;
+
+    int mouse_x = 0;
+    int mouse_y = 0;
+    bool mouse_pressed = false;
+
+    while (is_running) {
+        double clock_timer = (double)SDL_GetPerformanceCounter() - clock_start;
+
+        sc_uint32 mouse_state = SDL_GetMouseState(&mouse_x, &mouse_y);
+        mouse_pressed = mouse_state & SDL_BUTTON(1) | 
+                        mouse_state & SDL_BUTTON(2) | 
+                        mouse_state & SDL_BUTTON(3);
+
+        SDL_Event event;
+        while (SDL_PollEvent(&event) != 0) {
+            if (event.type == SDL_QUIT)
+                is_running = false;
+        }
+
+        SDL_SetRenderDrawColor(engine->renderer, 255, 255, 255, 255);
+        SDL_RenderClear(engine->renderer);
+
+        printf("days since 2000: %.9f\n", sc_days_since_2000());
+
+        SDL_RenderPresent(engine->renderer);
+    }
+
+    scEngine_free(engine);
     
     return EXIT_SUCCESS;
 }
