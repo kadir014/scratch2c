@@ -13,70 +13,8 @@ import json
 
 from common import Block, PrimitiveType, Primitive, Variable, Costume, Target
 from codegen import generate_code
-
-
-PP_MAP = {
-    "motion_glidesecstoxy": "Glide",
-
-    "event_whenflagclicked": "When flag clicked",
-
-    "control_repeat": "Repeat",
-    "control_if": "If",
-
-    "operator_add": "Add",
-    "operator_equals": "Equals",
-
-    "data_setvariableto": "Set variable to",
-
-    "procedures_call": "Proc call",
-    "procedures_definition": "Proc definition",
-    "procedures_prototype": "Proc prototype",
-
-    "argument_reporter_string_number": "Arg<str/num>",
-    "argument_reporter_boolean": "Arg<bool>"
-}
-
-PP_SPACES = 2
-
-def pretty_dict(d: dict, indent: int = 0) -> None:
-    # https://stackoverflow.com/a/3229493
-
-    for key, value in d.items():
-        print(" " * indent + str(key))
-
-        if isinstance(value, dict):
-            pretty_dict(value, indent + PP_SPACES)
-
-        else:
-            if isinstance(value, (Block, Primitive)):
-                pretty_print(value, indent + PP_SPACES)
-
-            else:
-                print(" " * (indent + PP_SPACES) + str(value))
-
-def pretty_print(block: Block | Primitive | None, indent: int = 0) -> None:
-    if isinstance(block, Primitive):
-        print(f"{' ' * (indent)}Primitive<{block.type}, {block.value}, {block.id}>")
-        return
-
-    if block is None:
-        #print(f"{' ' * (indent - PP_SPACES)}End")
-        return
-
-    if block.opcode in ("procedures_call", "procedures_prototype"):
-        print(f"{' ' * indent}{PP_MAP[block.opcode]} {block.procedure}")
-        for i, arg in enumerate(block.arguments):
-            print(f"{' ' * (indent + PP_SPACES)}Arg#{i}")
-            pretty_print(arg, indent=indent + PP_SPACES * 2)
-
-    else:
-        print(f"{' ' * indent}{PP_MAP[block.opcode]}")
-        if block.inputs is not None:
-            pretty_dict(block.inputs, indent + PP_SPACES)
-
-    if block.root: indent += PP_SPACES
-        
-    pretty_print(block.next, indent)
+from visualize import plot_ast
+from syntaxtree import generate_ast
 
 
 def get_next(sprite: dict, block_data: str | dict | list) -> Block | Primitive | None:
@@ -102,7 +40,7 @@ def get_next(sprite: dict, block_data: str | dict | list) -> Block | Primitive |
         
         else:
             next_block = sprite["blocks"][next_block_p]
-            block = Block(next_block["opcode"], next=get_next(sprite, next_block), root=next_block["topLevel"])
+            block = Block(next_block_p, next_block["opcode"], next=get_next(sprite, next_block), root=next_block["topLevel"])
             block.inputs = {}
             block.fields = {}
 
@@ -110,6 +48,7 @@ def get_next(sprite: dict, block_data: str | dict | list) -> Block | Primitive |
                 block.procedure = next_block["mutation"]["proccode"]
                 block.arguments = []
                 argumentids = next_block["mutation"]["argumentids"][1:-1].split(",")
+                print(argumentids)
                 argumentids = [v[1:-1] for v in argumentids]
                 for arg in argumentids:
                     block.arguments.append(get_next(sprite, next_block["inputs"][arg][1]))
@@ -124,7 +63,7 @@ def get_next(sprite: dict, block_data: str | dict | list) -> Block | Primitive |
 
 
 if __name__ == "__main__":
-    with zipfile.ZipFile("../test.sb3") as sb3zip:
+    with zipfile.ZipFile("../SCRATCHVMTEST002.sb3") as sb3zip:
         project = json.loads(sb3zip.read("project.json"))
 
     targets = []
@@ -142,10 +81,11 @@ if __name__ == "__main__":
         for block in target_d["blocks"]:
             if target_d["blocks"][block]["topLevel"]:
                 if target_d["blocks"][block]["opcode"] == "event_whenflagclicked":
+                    print(block)
                     green_flags_ids.append(block)
                 
-                elif target_d["blocks"][block]["opcode"] == "procedures_definition":
-                    procedures_ids.append(block)
+                #elif target_d["blocks"][block]["opcode"] == "procedures_definition":
+                #    procedures_ids.append(block)
 
         for block_id in green_flags_ids:
             target.scripts.append(get_next(target_d, block_id))
@@ -154,6 +94,6 @@ if __name__ == "__main__":
             target.procedures.append(get_next(target_d, proc_id))
 
         targets.append(target)
-
-    with open("generated.c", "w", encoding="utf-8") as file:
-        file.write(generate_code(targets))
+        
+    ast = generate_ast(targets[1].scripts[0].next)
+    plot_ast(ast)

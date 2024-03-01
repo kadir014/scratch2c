@@ -16,6 +16,7 @@
 #include "scratch/_scratch.h"
 #include "scratch/platform.h"
 #include "scratch/types.h"
+#include "scratch/math.h"
 
 #include "scratch/engine.h"
 #include "scratch/project.h"
@@ -24,6 +25,7 @@
 
 #include "scratch/motion.h"
 #include "scratch/looks.h"
+#include "scratch/control.h"
 #include "scratch/sensing.h"
 
 

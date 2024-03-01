@@ -35,6 +35,7 @@ class Primitive:
 
 @dataclass
 class Block:
+    id: str
     opcode: str
     root: bool = False
     parent: Block | None = None

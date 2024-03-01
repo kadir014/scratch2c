@@ -8,7 +8,7 @@
 
 """
 
-from common import Block, Target
+from common import Block, Primitive, PrimitiveType, Target
 
 
 FILE_DOC = \
@@ -24,7 +24,6 @@ FILE_DOC = \
 
   Scratch2C Project
   Github: https://github.com/kadir014/scratch2c
-  License: MIT
 
   Generated on: February 18, 2024 at 10:00 AM
 
@@ -66,6 +65,43 @@ def gen_procedure(proc: Block) -> str:
 """
 
 
+
+def gen_script(block: Block | Primitive, indent: int = 0) -> str:
+    if isinstance(block, Primitive):
+        if block.type == PrimitiveType.STRING:
+            return f"\"{block.value}\""
+        
+        else:
+            return f"{block.value}"
+        
+    else:
+        if block.opcode == "event_whenflagclicked":
+            return f"""
+{' '*indent}void flag_clicked() {{
+{' '*indent}{gen_script(block.next, indent+4)}
+{' '*indent}}}
+"""
+        
+        elif block.opcode == "data_setvariableto":
+            return f"{' '*indent}{block.fields['VARIABLE'][0]} = {gen_script(block.inputs['VALUE'])};"
+        
+        elif block.opcode == "control_repeat":
+            return f"""
+{' '*indent}SC_REPEAT({gen_script(block.inputs['TIMES'])}) {{
+{' '*indent}{gen_script(block.inputs['SUBSTACK'], indent+4)}
+{' '*indent}}}
+"""
+        elif block.opcode == "procedures_call":
+            args = []
+            for input_ in block.inputs:
+                args.append(gen_script(block.inputs[input_]))
+
+            return f"{' '*indent}{block.procedure}({', '.join(args)});"
+        
+        elif block.opcode == "motion_glidesecstoxy":
+            return f"{' '*indent}scSprite_glide();"
+
+
 def generate_code(targets: list[Target]) -> str:
     code = ""
 
@@ -93,5 +129,8 @@ scEngine *engine;
 
     for proc in targets[1].procedures:
         code += gen_procedure(proc)
+
+    for script in targets[1].scripts:
+        code += gen_script(script)
 
     return code

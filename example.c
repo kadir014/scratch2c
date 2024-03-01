@@ -29,14 +29,14 @@ scEngine *engine;
 
 /* Global (stage) variables */
 
-scVariable var;
+scVariable g_var;
 
 
 /* Custom blocks (procedures) */
 
 static inline void SC_FASTCALL SomeCustomBlock(scVariable a, scVariable b) {
     if (b.value_int) {
-        var.value_real = a.value_real;
+        g_var.value_real = a.value_real;
     }
 }
 

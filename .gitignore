@@ -2,7 +2,12 @@
 .vscode/
 build/
 deps/
+dev/
 generated.c
+project.json
+extract_project.py
+*_manual.c
+out.png
 
 # Python
 __pycache__/

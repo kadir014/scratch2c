@@ -77,6 +77,9 @@ scEngine *SC_FASTCALL scEngine_new(scProject project) {
         fprintf(stderr, IMG_GetError());
     }
 
+    // Initialize PRNG
+    srand(time(NULL));
+
     return engine;
 }
 

@@ -17,9 +17,9 @@
 
 
 typedef enum {
-    REAL,
-    INTEGER,
-    STRING
+    scVariableType_REAL,
+    scVariableType_INTEGER,
+    scVariableType_STRING
 } scVariableType;
 
 typedef struct {
@@ -30,6 +30,9 @@ typedef struct {
         char *value_str;
     };
 } scVariable;
+
+#define SC_VARIABLE_REAL(x) ((scVariable){.type=scVariableType_REAL, .value_real=(x)})
+#define SC_VARIABLE_INTEGER(x) ((scVariable){.type=scVariableType_INTEGER, .value_int=(x)})
 
 
 #endif

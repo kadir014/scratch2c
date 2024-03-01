@@ -18,17 +18,32 @@
 typedef struct {
     SDL_Texture *texture;
     const char *filename;
-
 } scCostume;
+
+static inline scCostume SC_FASTCALL scCostume_load(
+    SDL_Renderer *renderer,
+    const char *filepath
+) {
+    SDL_Texture *texture = IMG_LoadTexture(renderer, filepath);
+    if (!texture) {
+        fprintf(stderr, IMG_GetError());
+        exit(EXIT_FAILURE);
+    }
+
+    return (scCostume){
+        .filename=filepath,
+        .texture=texture
+    };
+}
 
 
 typedef struct {
     scCostume costumes[10];
     size_t max_costumes;
     size_t current_costume;
-    double x;
-    double y;
-    double angle;
+    sc_real x;
+    sc_real y;
+    sc_real angle;
     bool visible;
     bool draggable;
 } scSprite;

@@ -1,3 +1,13 @@
+"""
+
+    This file is a part of the Scratch to C
+    project and distributed under the MIT license.
+
+    Copyright © Kadir Aksoy
+    https://github.com/kadir014/scratch2c
+
+"""
+
 import os
 import subprocess
 import shutil
@@ -26,7 +36,7 @@ os.mkdir(BUILD_PATH)
 os.chdir(BUILD_PATH)
 
 compiler = "gcc"
-options = "-std=c11 -g3 -Wall -march=native"
+options = "-std=c11 -O3 -Wall -march=native"
 binary = "project.exe"
 
 libs = [
