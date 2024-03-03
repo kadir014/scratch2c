@@ -48,10 +48,17 @@ class Block:
 
 
 @dataclass
-class Variable:
+class TargetVariable:
     id: str
     name: str
     value: str
+
+
+@dataclass
+class TargetList:
+    id: str
+    name: str
+    data: list[str]
 
 
 @dataclass
@@ -64,6 +71,12 @@ class Costume:
 class Target:
     is_stage: bool
     costumes: list[Costume]
-    variables: list[Variable]
+    x: float = 0
+    y: float = 0
+    size: float = 100
+    direction: float = 90
+    draggable: bool = False
+    variables: list[TargetVariable]
+    lists: list[TargetList]
     scripts: list[Block] | None = None
     procedures: list[Block] | None = None

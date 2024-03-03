@@ -38,6 +38,7 @@ static inline scCostume SC_FASTCALL scCostume_load(
 
 
 typedef struct {
+    bool is_stage;
     scCostume costumes[10];
     size_t max_costumes;
     size_t current_costume;

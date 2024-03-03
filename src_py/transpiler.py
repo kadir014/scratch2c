@@ -10,8 +10,9 @@
 
 import zipfile
 import json
+import re
 
-from common import Block, PrimitiveType, Primitive, Variable, Costume, Target
+from common import Block, PrimitiveType, Primitive, TargetVariable, TargetList, Costume, Target
 from codegen import generate_code
 from visualize import plot_ast
 from syntaxtree import generate_ast
@@ -19,6 +20,9 @@ from syntaxtree import generate_ast
 
 def get_next(sprite: dict, block_data: str | dict | list) -> Block | Primitive | None:
     if isinstance(block_data, list):
+        if block_data[0] < 11 and block_data[1].isdigit():
+            block_data[0] = 4
+
         primitive = Primitive(
             PrimitiveType(block_data[0]),
             value=block_data[1]
@@ -47,10 +51,9 @@ def get_next(sprite: dict, block_data: str | dict | list) -> Block | Primitive |
             if next_block["opcode"] in ("procedures_call", "procedures_prototype"):
                 block.procedure = next_block["mutation"]["proccode"]
                 block.arguments = []
-                argumentids = next_block["mutation"]["argumentids"][1:-1].split(",")
-                print(argumentids)
-                argumentids = [v[1:-1] for v in argumentids]
-                for arg in argumentids:
+                argumentids = next_block["mutation"]["argumentids"][1:-1]
+                args = re.findall("\"([^\"]*)\"", argumentids)
+                for arg in args:
                     block.arguments.append(get_next(sprite, next_block["inputs"][arg][1]))
 
             for key in next_block["inputs"]:
@@ -63,17 +66,25 @@ def get_next(sprite: dict, block_data: str | dict | list) -> Block | Primitive |
 
 
 if __name__ == "__main__":
-    with zipfile.ZipFile("../SCRATCHVMTEST002.sb3") as sb3zip:
+    with zipfile.ZipFile("../test.sb3") as sb3zip:
         project = json.loads(sb3zip.read("project.json"))
 
     targets = []
 
     for target_d in project["targets"]:
         costumes = [Costume(c["name"], c["md5ext"]) for c in target_d["costumes"]]
-        variables = [Variable(key, target_d["variables"][key][0], target_d["variables"][key][1]) for key in target_d["variables"]]
+        variables = [TargetVariable(key, target_d["variables"][key][0], target_d["variables"][key][1]) for key in target_d["variables"]]
+        lists = [TargetList(key, target_d["lists"][key][0], target_d["lists"][key][1]) for key in target_d["lists"]]
         target = Target(target_d["isStage"], costumes, variables)
         target.scripts = []
         target.procedures = []
+
+        if not target.is_stage:
+            target.x = target_d["x"]
+            target.y = target_d["y"]
+            target.size = target_d["size"]
+            target.direction = target_d["direction"]
+            target.draggable = target_d["draggable"]
 
         green_flags_ids = []
         procedures_ids = []
@@ -81,7 +92,6 @@ if __name__ == "__main__":
         for block in target_d["blocks"]:
             if target_d["blocks"][block]["topLevel"]:
                 if target_d["blocks"][block]["opcode"] == "event_whenflagclicked":
-                    print(block)
                     green_flags_ids.append(block)
                 
                 #elif target_d["blocks"][block]["opcode"] == "procedures_definition":
@@ -95,5 +105,8 @@ if __name__ == "__main__":
 
         targets.append(target)
         
-    ast = generate_ast(targets[1].scripts[0].next)
-    plot_ast(ast)
+    #ast = generate_ast(targets[1].scripts[0].next)
+    #plot_ast(ast)
+
+    with open("generated.c", "w") as file:
+        file.write(generate_code(targets))

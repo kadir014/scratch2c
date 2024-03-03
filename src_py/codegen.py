@@ -8,7 +8,8 @@
 
 """
 
-from common import Block, Primitive, PrimitiveType, Target
+from common import Target
+from syntaxtree import *
 
 
 FILE_DOC = \
@@ -33,74 +34,66 @@ FILE_DOC = \
 */
 """.strip()
 
-
-def gen(block: Block | None) -> str:
-    if block is None:
-        return ""
-    
-    if block.opcode == "control_if":
-        cond = gen(block.inputs["CONDITION"])
-        return f"if ({cond}) {{{gen(block.inputs['SUBSTACK'])}}}"
-    
-    elif block.opcode == "argument_reporter_boolean":
-        return block.fields["VALUE"][0]
-    
-    elif block.opcode == "data_setvariableto":
-        return "SetVariable"
+ADD = 0
+SUB = 1
+MUL = 2
+DIV = 3
+MOD = 4
+EQ  = 5
+LT  = 6
+GT  = 7
+AND = 8
+OR  = 9
 
 
-def gen_procedure(proc: Block) -> str:
-    prototype = proc.inputs["custom_block"]
+OP_MAP = {
+    BinOpType.ADD: "+",
+    BinOpType.SUB: "-",
+    BinOpType.MUL: "*",
+    BinOpType.DIV: "/",
+    BinOpType.MOD: "%", # TODO: fmod
+    BinOpType.EQ: "==",
+    BinOpType.LT: "<",
+    BinOpType.GT: ">",
+    BinOpType.AND: "&&",
+    BinOpType.OR: "||",
+}
+        
 
-    stack = gen(proc.next)
-
-    proc_name = "SomeCustomBlock"
-    proc_args = ""
-    signature = f"static inline void SC_FASTCALL {proc_name}({proc_args})"
-
-    return f"""
-{signature} {{
-    {stack}
-}}
-"""
-
-
-
-def gen_script(block: Block | Primitive, indent: int = 0) -> str:
-    if isinstance(block, Primitive):
-        if block.type == PrimitiveType.STRING:
-            return f"\"{block.value}\""
+def generate_from_node(node: Node) -> str:
+    if isinstance(node, Literal):
+        if node.type == LiteralType.NUMBER:
+            return f"{node.value}"
         
         else:
-            return f"{block.value}"
+            return node.value
         
-    else:
-        if block.opcode == "event_whenflagclicked":
-            return f"""
-{' '*indent}void flag_clicked() {{
-{' '*indent}{gen_script(block.next, indent+4)}
-{' '*indent}}}
-"""
-        
-        elif block.opcode == "data_setvariableto":
-            return f"{' '*indent}{block.fields['VARIABLE'][0]} = {gen_script(block.inputs['VALUE'])};"
-        
-        elif block.opcode == "control_repeat":
-            return f"""
-{' '*indent}SC_REPEAT({gen_script(block.inputs['TIMES'])}) {{
-{' '*indent}{gen_script(block.inputs['SUBSTACK'], indent+4)}
-{' '*indent}}}
-"""
-        elif block.opcode == "procedures_call":
-            args = []
-            for input_ in block.inputs:
-                args.append(gen_script(block.inputs[input_]))
+    elif isinstance(node, Variable):
+        return f"g_{node.name}.value_real"
 
-            return f"{' '*indent}{block.procedure}({', '.join(args)});"
-        
-        elif block.opcode == "motion_glidesecstoxy":
-            return f"{' '*indent}scSprite_glide();"
+    elif isinstance(node, Assignment):
+        # get if variable is global from variable table
+        return f"g_{node.variable.name}.value_real = ({generate_from_node(node.expression)});\n"
+    
+    elif isinstance(node, Repeat):
+        inner_code = []
+        for inner_node in node.body:
+            inner_code.append(generate_from_node(inner_node))
 
+        code = f"SC_REPEAT((sc_uint64)({generate_from_node(node.times)})) {{\n"
+        for stmt in inner_code:
+            code += f"    {stmt}"
+        code += "\n}"
+        return code
+
+    elif isinstance(node, BinOp):
+        return f"{generate_from_node(node.left)} {OP_MAP[node.type]} {generate_from_node(node.right)}"
+    
+    elif isinstance(node, FunctionCall):
+        args = []
+        for arg in node.arguments:
+            args.append(generate_from_node(arg))
+        return f"{node.function}({', '.join(args)});\n"
 
 def generate_code(targets: list[Target]) -> str:
     code = ""
@@ -125,12 +118,90 @@ scEngine *engine;
     stage = [t for t in targets if t.is_stage][0]
 
     for var in stage.variables:
-        code += f"scVariable {var.name};"
+        code += f"scVariable g_{var.name};"
 
-    for proc in targets[1].procedures:
-        code += gen_procedure(proc)
+    code += "\n"
+
+    #for proc in targets[1].procedures:
+    #    code += gen_procedure(proc)
 
     for script in targets[1].scripts:
-        code += gen_script(script)
+        if script.opcode == "event_whenflagclicked":
+            ast = generate_ast(script.next)
+
+            inner_code = []
+            for node in ast:
+                inner_code.append(generate_from_node(node))
+
+            flag_code = f"static void SC_FASTCALL target{id(targets[1])}_flag_clicked(void) {{\n"
+            for stmt in inner_code:
+                flag_code += f"    {stmt}"
+            flag_code += "\n}"
+
+            code += flag_code
+
+    targets_code = ""
+
+    for i, target in enumerate(targets):
+        targets_code += f"""
+scSprite target{i} = {{
+    .is_stage={int(target.is_stage)}
+    .x=0.0,
+    .y=0.0,
+    .angle=0.0,
+    .visible=true,
+    .draggable=true,
+    .current_costume = 0
+}};
+target0.max_costumes = 1;
+target0.costumes[0] = (scCostume){{
+    .filename="asset.png",
+    .texture=NULL
+}};
+"""
+
+    code += f"""
+int main(int argc, char **argv) {{
+    project = scProject_default;
+    engine = scEngine_new(project);
+
+    {targets_code}
+
+    bool is_running = true;
+
+    double clock_frequency = (double)SDL_GetPerformanceFrequency();
+    double clock_start = (double)SDL_GetPerformanceCounter() / clock_frequency;
+
+    int mouse_x = 0;
+    int mouse_y = 0;
+    bool mouse_pressed = false;
+
+    while (is_running) {{
+        double clock_timer = (double)SDL_GetPerformanceCounter() - clock_start;
+
+        sc_uint32 mouse_state = SDL_GetMouseState(&mouse_x, &mouse_y);
+        mouse_pressed = mouse_state & SDL_BUTTON(1) | 
+                        mouse_state & SDL_BUTTON(2) | 
+                        mouse_state & SDL_BUTTON(3);
+
+        SDL_Event event;
+        while (SDL_PollEvent(&event) != 0) {{
+            if (event.type == SDL_QUIT)
+                is_running = false;
+        }}
+
+        SDL_SetRenderDrawColor(engine->renderer, 255, 255, 255, 255);
+        SDL_RenderClear(engine->renderer);
+
+        printf("days since 2000: %.9f\n", sc_days_since_2000());
+
+        SDL_RenderPresent(engine->renderer);
+    }}
+
+    scEngine_free(engine);
+    
+    return EXIT_SUCCESS;
+}}
+"""
 
     return code

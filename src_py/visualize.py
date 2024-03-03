@@ -77,11 +77,24 @@ def build_graph(graph: pydot.Graph, node: Node) -> int:
 
         inner_id = build_graph(graph, node.right)
         graph.add_edge(pydot.Edge(node_id, inner_id, labelfloat=True, label="right", fontsize=9.0, color="gray"))
+    
+    elif isinstance(node, ListAction):
+        if node.param1 is not None:
+            inner_id0 = build_graph(graph, node.param1)
+            graph.add_edge(pydot.Edge(node_id, inner_id0, labelfloat=True, label="param1", fontsize=9.0, color="gray"))
+
+        if node.param2 is not None:
+            inner_id1 = build_graph(graph, node.param2)
+            graph.add_edge(pydot.Edge(node_id, inner_id1, labelfloat=True, label="param2", fontsize=9.0, color="gray"))
 
     elif isinstance(node, FunctionCall):
         for i, arg in enumerate(node.arguments):
             inner_id = build_graph(graph, arg)
             graph.add_edge(pydot.Edge(node_id, inner_id, labelfloat=True, label=f"arg#{i}", fontsize=9.0, color="gray"))
+
+    elif isinstance(node, PenColorAssignment):
+        inner_id = build_graph(graph, node.color)
+        graph.add_edge(pydot.Edge(node_id, inner_id, labelfloat=True, label="color", fontsize=9.0, color="gray"))
 
     return node_id
 
