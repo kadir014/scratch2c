@@ -31,7 +31,7 @@ for root, _, files in os.walk(SRC_PATH):
             srcs.append(os.path.join(root, file))
 
 
-def build() -> None:
+def build(quiet: bool = False) -> None:
     info("Compiling")
 
     if os.path.exists(BUILD_PATH):
@@ -58,14 +58,17 @@ def build() -> None:
     ]
 
     compile_cmd = f"{compiler} {options} -o {binary} {' '.join(str(i) for i in srcs)} -I{' -I'.join(str(i) for i in includes)} -L{' -L'.join(str(i) for i in libs)} {links}"
-    print(compile_cmd, "\n")
+    if not quiet: print(compile_cmd, "\n")
 
     start = perf_counter()
-    result = subprocess.run(compile_cmd, shell=True)
+    if quiet:
+        result = subprocess.run(compile_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    else:
+        result = subprocess.run(compile_cmd, shell=True)
     end = perf_counter()
 
     if result.returncode == 0:
-        print()
+        if not quiet: print()
         done(f"Compilation finished in {FG.yellow}{round(end - start, 2)}s{RESET}")
 
         if os.path.exists(binary):
@@ -83,8 +86,12 @@ def build() -> None:
 
             os.replace(BASE_PATH / "project_data", BUILD_PATH / "project_data")
 
+            info("Running the project binary")
             result = subprocess.run(binary)
-            print(f"{binary} exited with code {result.returncode}")
+            if result.returncode == 0:
+                done(f"Project binary exited with code {result.returncode}")
+            else:
+                fail(f"Project binary exited with code {result.returncode}")
     
     else:
         print()

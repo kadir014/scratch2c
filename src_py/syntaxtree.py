@@ -57,16 +57,20 @@ class Assignment(Node):
         return "Assignment"
 
 class BinOpType(Enum):
-    ADD = 0
-    SUB = 1
-    MUL = 2
-    DIV = 3
-    MOD = 4
-    EQ  = 5
-    LT  = 6
-    GT  = 7
-    AND = 8
-    OR  = 9
+    ADD   = 0
+    SUB   = 1
+    MUL   = 2
+    DIV   = 3
+    MOD   = 4
+    EQ    = 5
+    LT    = 6
+    GT    = 7
+    AND   = 8
+    OR    = 9
+    RAND  = 10
+    JOIN  = 11
+    INDEX = 12
+    IN    = 13
 
 @dataclass
 class BinOp(Node):
@@ -76,6 +80,33 @@ class BinOp(Node):
 
     def __repr__(self) -> str:
         return f"BinOp<{self.type.name}>"
+
+class UnaryOpType(Enum):
+    NOT   = 0
+    LEN   = 1
+    ROUND = 2
+    ABS   = 3
+    FLOOR = 4
+    CEIL  = 5
+    SQRT  = 6
+    SIN   = 7
+    COS   = 8
+    TAN   = 9
+    ASIN  = 10
+    ACOS  = 11
+    ATAN  = 12
+    LN    = 13
+    LOG   = 14
+    POWE  = 15
+    POW10 = 16
+    
+@dataclass
+class UnaryOp(Node):
+    type: UnaryOpType
+    right: Node
+
+    def __repr__(self) -> str:
+        return f"UnaryOp<{self.type.name}>"
 
 @dataclass
 class Repeat(Node):
@@ -248,9 +279,63 @@ def generate_node(block: Block | Primitive) -> Node:
     elif block.opcode == "operator_divide":
         return BinOp(BinOpType.DIV, generate_node(block.inputs["NUM1"]), generate_node(block.inputs["NUM2"]))
     
+    elif block.opcode == "operator_random":
+        return BinOp(BinOpType.RAND, generate_node(block.inputs["FROM"]), generate_node(block.inputs["TO"]))
+    
     elif block.opcode == "operator_equals":
         return BinOp(BinOpType.EQ, generate_node(block.inputs["OPERAND1"]), generate_node(block.inputs["OPERAND2"]))
     
+    elif block.opcode == "operator_gt":
+        return BinOp(BinOpType.GT, generate_node(block.inputs["OPERAND1"]), generate_node(block.inputs["OPERAND2"]))
+    
+    elif block.opcode == "operator_lt":
+        return BinOp(BinOpType.LT, generate_node(block.inputs["OPERAND1"]), generate_node(block.inputs["OPERAND2"]))
+    
+    elif block.opcode == "operator_and":
+        return BinOp(BinOpType.AND, generate_node(block.inputs["OPERAND1"]), generate_node(block.inputs["OPERAND2"]))
+    
+    elif block.opcode == "operator_or":
+        return BinOp(BinOpType.OR, generate_node(block.inputs["OPERAND1"]), generate_node(block.inputs["OPERAND2"]))
+    
+    elif block.opcode == "operator_not":
+        return UnaryOp(UnaryOpType.NOT, generate_node(block.inputs["OPERAND"]))
+    
+    elif block.opcode == "operator_join":
+        return BinOp(BinOpType.JOIN, generate_node(block.inputs["STRING1"]), generate_node(block.inputs["STRING2"]))
+    
+    elif block.opcode == "operator_letter_of":
+        return BinOp(BinOpType.INDEX, generate_node(block.inputs["LETTER"]), generate_node(block.inputs["STRING"]))
+    
+    elif block.opcode == "operator_length":
+        return UnaryOp(UnaryOpType.LEN, generate_node(block.inputs["STRING"]))
+    
+    elif block.opcode == "operator_contains":
+        return BinOp(BinOpType.IN, generate_node(block.inputs["STRING1"]), generate_node(block.inputs["STRING2"]))
+    
+    elif block.opcode == "operator_mod":
+        return BinOp(BinOpType.MOD, generate_node(block.inputs["NUM1"]), generate_node(block.inputs["NUM2"]))
+    
+    elif block.opcode == "operator_round":
+        return UnaryOp(UnaryOpType.ROUND, generate_node(block.inputs["NUM"]))
+    
+    elif block.opcode == "operator_mathop":
+        if block.fields["OPERATOR"][0] == "abs": type_ = UnaryOpType.ABS
+        elif block.fields["OPERATOR"][0] == "floor": type_ = UnaryOpType.FLOOR
+        elif block.fields["OPERATOR"][0] == "ceiling": type_ = UnaryOpType.CEIL
+        elif block.fields["OPERATOR"][0] == "sqrt": type_ = UnaryOpType.SQRT
+        elif block.fields["OPERATOR"][0] == "sin": type_ = UnaryOpType.SIN
+        elif block.fields["OPERATOR"][0] == "cos": type_ = UnaryOpType.COS
+        elif block.fields["OPERATOR"][0] == "tan": type_ = UnaryOpType.TAN
+        elif block.fields["OPERATOR"][0] == "asin": type_ = UnaryOpType.ASIN
+        elif block.fields["OPERATOR"][0] == "acos": type_ = UnaryOpType.ACOS
+        elif block.fields["OPERATOR"][0] == "atan": type_ = UnaryOpType.ATAN
+        elif block.fields["OPERATOR"][0] == "ln": type_ = UnaryOpType.LN
+        elif block.fields["OPERATOR"][0] == "log": type_ = UnaryOpType.LOG
+        elif block.fields["OPERATOR"][0] == "e ^": type_ = UnaryOpType.POWE
+        elif block.fields["OPERATOR"][0] == "10 ^": type_ = UnaryOpType.POW10
+        
+        return UnaryOp(type_, generate_node(block.inputs["NUM"]))
+
     elif block.opcode == "data_deletealloflist":
         return ListAction(ListActionType.CLEAR, List(block.fields["LIST"][0], block.fields["LIST"][1]))
     

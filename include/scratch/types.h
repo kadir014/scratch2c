@@ -20,6 +20,9 @@
 typedef double sc_real;
 #define sc_sin sin
 #define sc_cos cos
+#define sc_fmod fmod
+#define sc_round round
+#define sc_fabs fabs
 
 typedef int8_t sc_int8;
 typedef int16_t sc_int16;

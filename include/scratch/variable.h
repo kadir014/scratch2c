@@ -18,7 +18,6 @@
 
 typedef enum {
     scVariableType_REAL,
-    scVariableType_INTEGER,
     scVariableType_STRING
 } scVariableType;
 
@@ -26,13 +25,46 @@ typedef struct {
     scVariableType type;
     union {
         sc_real value_real;
-        sc_int64 value_int;
         char *value_str;
     };
 } scVariable;
 
 #define SC_VARIABLE_REAL(x) ((scVariable){.type=scVariableType_REAL, .value_real=(x)})
-#define SC_VARIABLE_INTEGER(x) ((scVariable){.type=scVariableType_INTEGER, .value_int=(x)})
+#define SC_VARIABLE_STRING(x) ((scVariable){.type=scVariableType_STRING, .value_str=(x)})
+
+static inline scVariable SC_FASTCALL scVariable_cast(scVariable a, scVariableType type) {
+    if (a.type == scVariableType_REAL && type == scVariableType_REAL) {
+        return a;
+    }
+    else if (a.type == scVariableType_REAL && type == scVariableType_STRING) {
+        // TODO: CAST REAL TO STRING
+        a.type = type;
+        a.value_str = "";
+        return a;
+    }
+    else if (a.type == scVariableType_STRING && type == scVariableType_REAL) {
+        // TODO: CAST STRING TO REAL
+        a.type = type;
+        a.value_real = 0.0;
+        return a;
+    }
+    else if (a.type == scVariableType_STRING && type == scVariableType_STRING) {
+        return a;
+    }
+
+    return SC_VARIABLE_REAL(0.0); // -Wreturn-type
+}
+
+static inline void SC_FASTCALL scVariable_assign(scVariable *a, scVariable b) {
+    if (b.type == scVariableType_REAL) {
+        a->type = scVariableType_REAL;
+        a->value_real = b.value_real;
+    }
+    else if (b.type == scVariableType_STRING) {
+        a->type = scVariableType_STRING;
+        a->value_str = b.value_str;
+    }
+}
 
 
 #endif

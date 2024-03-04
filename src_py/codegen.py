@@ -37,39 +37,24 @@ f"""
   
 */
 """.strip()
-
-
-OP_MAP = {
-    BinOpType.ADD: "+",
-    BinOpType.SUB: "-",
-    BinOpType.MUL: "*",
-    BinOpType.DIV: "/",
-    BinOpType.MOD: "%",
-    BinOpType.EQ: "==",
-    BinOpType.LT: "<",
-    BinOpType.GT: ">",
-    BinOpType.AND: "&&",
-    BinOpType.OR: "||",
-}
         
 
 def generate_from_node(node: Node, target: Target) -> str:
     if isinstance(node, Literal):
         if node.type == LiteralType.NUMBER:
-            return f"{node.value}"
+            return f"SC_VARIABLE_REAL({node.value})"
         
         else:
-            return node.value
+            return f"SC_VARIABLE_STRING(\"{node.value}\")"
         
     elif isinstance(node, Variable):
-        return f"g_{node.name}.value_real"
+        return f"g_{node.name}"
 
     elif isinstance(node, Assignment):
-        # get if variable is global from variable table
-        return f"g_{node.variable.name}.value_real = ({generate_from_node(node.expression, target)});\n"
+        return f"scVariable_assign(&g_{node.variable.name}, {generate_from_node(node.expression, target)});\n"
     
     elif isinstance(node, MotionTurn):
-        return f"sprite->angle {('-', '+')[node.cw]}= {generate_from_node(node.angle, target)};\n"
+        return f"sprite->angle {('-', '+')[node.cw]}= ({generate_from_node(node.angle, target)}).value_real;\n"
     
     elif isinstance(node, Repeat):
         inner_code = []
@@ -94,19 +79,27 @@ def generate_from_node(node: Node, target: Target) -> str:
         return code
 
     elif isinstance(node, BinOp):
-        return f"{generate_from_node(node.left, target)} {OP_MAP[node.type]} {generate_from_node(node.right, target)}"
+        left = generate_from_node(node.left, target)
+        right = generate_from_node(node.right, target)
+
+        return f"sc_op_{node.type.name.lower()}({left}, {right})"
+
+    elif isinstance(node, UnaryOp):
+        right = generate_from_node(node.right, target)
+
+        return f"sc_op_{node.type.name.lower()}({right})"
     
     elif isinstance(node, FunctionCall):
         args = []
         for arg in node.arguments:
-            args.append(f"SC_VARIABLE_REAL({generate_from_node(arg, target)})")
+            args.append(generate_from_node(arg, target))
 
         func = f"proc{id(target)}_{node.function}"
 
         return f"{func}(sprite, {', '.join(args)});\n"
     
     elif isinstance(node, FunctionArgument):
-        return f"{node.name}.value_real"
+        return f"{node.name}"
 
 def generate_code(project: Project) -> str:
     targets = project.targets
@@ -135,6 +128,7 @@ scEngine *engine;
     stage_vars_code = ""
     for var in stage.variables:
         code += f"scVariable g_{var.name};\n"
+        stage_vars_code += f"g_{var.name}.type = scVariableType_REAL;"
         stage_vars_code += f"g_{var.name}.value_real = {var.value};\n"
 
     code += "\n\n"

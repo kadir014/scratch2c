@@ -129,9 +129,9 @@ void SC_FASTCALL scEngine_tick(scEngine *engine) {
     // SDL_SetWindowTitle(engine->window, title);
 
     sc_uint32 mouse_state = SDL_GetMouseState(&engine->mouse_x, &engine->mouse_y);
-    engine->mouse_pressed = mouse_state & SDL_BUTTON(1) | 
-                            mouse_state & SDL_BUTTON(2) | 
-                            mouse_state & SDL_BUTTON(3);
+    engine->mouse_pressed = (mouse_state & SDL_BUTTON(1)) | 
+                            (mouse_state & SDL_BUTTON(2)) | 
+                            (mouse_state & SDL_BUTTON(3));
 
     SDL_Event event;
     while (SDL_PollEvent(&event) != 0) {

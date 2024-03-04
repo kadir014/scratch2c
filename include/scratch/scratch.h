@@ -27,6 +27,7 @@
 #include "scratch/looks.h"
 #include "scratch/control.h"
 #include "scratch/sensing.h"
+#include "scratch/operators.h"
 
 
 #endif
