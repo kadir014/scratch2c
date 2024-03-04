@@ -30,6 +30,7 @@ typedef struct {
     sc_real stage_height2;
     scProjectMetadata metadata;
     scSprite *targets;
+    size_t targets_size;
 } scProject;
 
 static const scProject scProject_default = {
@@ -42,7 +43,8 @@ static const scProject scProject_default = {
         .vm_ver="",
         .user_agent=""
     },
-    .targets=NULL
+    .targets=NULL,
+    .targets_size=0
 };
 
 

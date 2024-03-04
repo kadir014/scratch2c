@@ -9,15 +9,14 @@
 
   Scratch2C Project
   Github: https://github.com/kadir014/scratch2c
-  License: MIT
 
-  Generated on: February 18, 2024 at 10:00 AM
+  Generated on: 04/03/2024 at 11:29:54
 
   For support or issues, please use the issue tracker:
     https://github.com/kadir014/scratch2c/issues
   
 */
-
+    
 #include "scratch/scratch.h"
 
 
@@ -27,67 +26,67 @@ scProject project;
 scEngine *engine;
 
 
-/* Global (stage) variables */
-
-scVariable g_var;
-
-
-/* Custom blocks (procedures) */
-
-static inline void SC_FASTCALL SomeCustomBlock(scVariable a, scVariable b) {
-    if (b.value_int) {
-        g_var.value_real = a.value_real;
-    }
+/**
+ * @brief Convert Scratch coordinates to screen space. 
+ * 
+ * @warning Don't call this without initializing global project variable first.
+ * 
+ * @param x X
+ * @param y Y
+ */
+static inline void SC_FASTCALL sc_scratch_to_screen_space(sc_real *x, sc_real *y) {
+    *x += project.stage_width2;
+    *y = -(*y) + project.stage_height2;
 }
 
 
 int main(int argc, char **argv) {
     project = scProject_default;
+    project.metadata.scratch_ver = "3.0.0";
+    project.metadata.vm_ver = "0.2.0";
+    project.metadata.user_agent = "";
     engine = scEngine_new(project);
 
-    scSprite target0 = {
-        .x=0.0,
-        .y=0.0,
-        .angle=0.0,
-        .visible=true,
-        .draggable=true,
+    project.targets_size = 2;
+    scSprite targets[2];
+    project.targets = targets;
+    
+    targets[0] = (scSprite){
+        .is_stage=1,
+        .x=0,
+        .y=0,
+        .angle=90,
+        .visible=1,
+        .draggable=0,
         .current_costume = 0
     };
-    target0.max_costumes = 1;
-    target0.costumes[0] = (scCostume){
-        .filename="asset.png",
-        .texture=NULL
+    targets[0].max_costumes = 1;
+    targets[0].costumes[0] = scCostume_load(engine->renderer, "project_data/cd21514d0531fdffb22204e0ec5ed84a.svg");
+
+    targets[1] = (scSprite){
+        .is_stage=0,
+        .x=0,
+        .y=0,
+        .angle=174.89999999999998,
+        .visible=1,
+        .draggable=0,
+        .current_costume = 0
     };
+    targets[1].max_costumes = 1;
+    targets[1].costumes[0] = scCostume_load(engine->renderer, "project_data/592bae6f8bb9c8d88401b54ac431f7b6.svg");
 
-    bool is_running = true;
+    engine->is_running = true;
+    while (engine->is_running) {
+        scEngine_tick(engine);
 
-    double clock_frequency = (double)SDL_GetPerformanceFrequency();
-    double clock_start = (double)SDL_GetPerformanceCounter() / clock_frequency;
+        scEngine_clear(engine);
 
-    int mouse_x = 0;
-    int mouse_y = 0;
-    bool mouse_pressed = false;
+        // Run scripts
+        target2616643568208_flag_clicked2616643568464(&project.targets[1]);
 
-    while (is_running) {
-        double clock_timer = (double)SDL_GetPerformanceCounter() - clock_start;
+        scEngine_render(engine, &project);
 
-        sc_uint32 mouse_state = SDL_GetMouseState(&mouse_x, &mouse_y);
-        mouse_pressed = mouse_state & SDL_BUTTON(1) | 
-                        mouse_state & SDL_BUTTON(2) | 
-                        mouse_state & SDL_BUTTON(3);
-
-        SDL_Event event;
-        while (SDL_PollEvent(&event) != 0) {
-            if (event.type == SDL_QUIT)
-                is_running = false;
-        }
-
-        SDL_SetRenderDrawColor(engine->renderer, 255, 255, 255, 255);
-        SDL_RenderClear(engine->renderer);
-
-        printf("days since 2000: %.9f\n", sc_days_since_2000());
-
-        SDL_RenderPresent(engine->renderer);
+        scEngine_flush(engine);
     }
 
     scEngine_free(engine);

@@ -77,7 +77,6 @@ static inline double SC_FASTCALL sc_days_since_2000() {
     #if defined(SC_PLATFORM_WINDOWS)
 
         double sec_per_day = 24.0 * 60.0 * 60.0;
-        double since_2000 = 946684800.0; // Seconds since 1/1/2000
 
         SYSTEMTIME start_tm;
         start_tm.wYear = 2000;
@@ -135,7 +134,7 @@ static inline double SC_FASTCALL sc_days_since_2000() {
 /**
  * @brief Return the username. Currently returns an empty string.
  * 
- * @return char* 
+ * @return char * 
  */
 static inline char *SC_FASTCALL sc_username() {
     return "";

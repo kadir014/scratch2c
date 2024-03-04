@@ -3,6 +3,7 @@
 build/
 deps/
 dev/
+project_data/
 generated.c
 project.json
 extract_project.py

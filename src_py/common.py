@@ -32,7 +32,6 @@ class Primitive:
     value: str
     id: str = ""
 
-
 @dataclass
 class Block:
     id: str
@@ -46,13 +45,11 @@ class Block:
     inputs: dict | None = None
     fields: dict | None = None
 
-
 @dataclass
 class TargetVariable:
     id: str
     name: str
     value: str
-
 
 @dataclass
 class TargetList:
@@ -60,23 +57,29 @@ class TargetList:
     name: str
     data: list[str]
 
-
 @dataclass
 class Costume:
     name: str
     file: str
 
-
 @dataclass
 class Target:
     is_stage: bool
     costumes: list[Costume]
+    variables: list[TargetVariable]
+    lists: list[TargetList]
     x: float = 0
     y: float = 0
     size: float = 100
     direction: float = 90
+    visible: bool = True
     draggable: bool = False
-    variables: list[TargetVariable]
-    lists: list[TargetList]
     scripts: list[Block] | None = None
     procedures: list[Block] | None = None
+
+@dataclass
+class Project:
+    scratch_ver: str
+    vm_ver: str
+    user_agent: str
+    targets: list[Target]

@@ -11,11 +11,27 @@
 #include "scratch/engine.h"
 
 
-static void _quit() {
+/**
+ * @brief Release all SDL modules.
+ */
+static inline void _quit() {
     SDL_Quit();
     TTF_Quit();
     IMG_Quit();
 }
+
+
+/**
+ * @brief Convert Scratch coordinates to screen space.
+ * 
+ * @param x X
+ * @param y Y
+ */
+static inline void SC_FASTCALL sc_scratch_to_screen_space(scProject *project, sc_real *x, sc_real *y) {
+    *x += project->stage_width2;
+    *y = -(*y) + project->stage_height2;
+}
+
 
 scEngine *SC_FASTCALL scEngine_new(scProject project) {
     scEngine *engine = (scEngine *)malloc(sizeof(scEngine));
@@ -80,6 +96,16 @@ scEngine *SC_FASTCALL scEngine_new(scProject project) {
     // Initialize PRNG
     srand(time(NULL));
 
+    engine->is_running = false;
+
+    engine->clock_frequency = (double)SDL_GetPerformanceFrequency();
+    engine->clock_start = (double)SDL_GetPerformanceCounter() / engine->clock_frequency;
+    engine->clock_last = 0.0;
+
+    engine->mouse_x = 0;
+    engine->mouse_y = 0;
+    engine->mouse_pressed = false;
+
     return engine;
 }
 
@@ -90,4 +116,75 @@ void SC_FASTCALL scEngine_free(scEngine *engine) {
     SDL_DestroyWindow(engine->window);
     free(engine);
     _quit();
+}
+
+void SC_FASTCALL scEngine_tick(scEngine *engine) {
+    engine->clock_timer = (double)SDL_GetPerformanceCounter() / engine->clock_frequency - engine->clock_start;
+
+    engine->fps = 1.0 / (engine->clock_timer - engine->clock_last);
+    engine->clock_last = engine->clock_timer;
+
+    // char title[64];
+    // sprintf(title, "Scratch2C Window - SDL2 Direct3D Renderer - %.1fFPS", fps);
+    // SDL_SetWindowTitle(engine->window, title);
+
+    sc_uint32 mouse_state = SDL_GetMouseState(&engine->mouse_x, &engine->mouse_y);
+    engine->mouse_pressed = mouse_state & SDL_BUTTON(1) | 
+                            mouse_state & SDL_BUTTON(2) | 
+                            mouse_state & SDL_BUTTON(3);
+
+    SDL_Event event;
+    while (SDL_PollEvent(&event) != 0) {
+        if (event.type == SDL_QUIT) {
+            engine->is_running = false;
+        }
+    }
+}
+
+void SC_FASTCALL scEngine_render(scEngine *engine, scProject *project) {
+    for (size_t i = 0; i < project->targets_size; i++) {
+        scSprite target = project->targets[i];
+        if (!target.visible) continue;
+
+        SDL_Texture *texture = target.costumes[0].texture;
+
+        sc_real x = target.x;
+        sc_real y = target.y;
+        sc_scratch_to_screen_space(project, &x, &y);
+
+        int texture_width, texture_height;
+        SDL_QueryTexture(texture, NULL, NULL, &texture_width, &texture_height);
+
+        // Scale by sprite size
+        // float width = texture_width * transform->scale.x;
+        // float height = texture_height * transform->scale.y;
+        float width = texture_width;
+        float height = texture_height;
+
+        SDL_FRect dest_rect = {
+            x - width / 2.0,
+            y - height / 2.0,
+            width,
+            height
+        };
+
+        SDL_RenderCopyExF(
+            engine->renderer,
+            texture,
+            NULL,
+            &dest_rect,
+            target.angle,
+            NULL,
+            SDL_FLIP_NONE
+        );
+    }
+}
+
+void SC_FASTCALL scEngine_clear(scEngine *engine) {
+    SDL_SetRenderDrawColor(engine->renderer, 255, 255, 255, 255);
+    SDL_RenderClear(engine->renderer);
+}
+
+void SC_FASTCALL scEngine_flush(scEngine *engine) {
+    SDL_RenderPresent(engine->renderer);
 }

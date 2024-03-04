@@ -3,19 +3,34 @@ Scratch3 interface in C and transpiler.
 The C API for Scratch uses SDL2 and its extensions.
 
 
+# Instructions
+To transpile and build your Scratch project follow these instructions:
+
+**❗ Prerequisites:**
+- Python 3.10+
+- GCC (Clang might work as well) on Linux
+- MinGW (should be under MSYS2/UCRT) on Windows
+
+Clone the project and enter the dir
+```
+$ git clone https://github.com/kadir014/scratch2c.git
+$ cd ./scratch2c
+```
+
+
 
 # Blocks
-Scratch blocks included in the C API:
-- [Motion](#motion)
-- [Looks](#looks)
-- [Sound](#sound)
-- [Events](#events)
-- [Control](#control)
-- [Sensing](#sensing)
-- [Operators](#operators)
-- [Variables](#variables)
-- [Lists](#lists)
-- [Pen](#pen)
+Scratch blocks currently implemented in the C API:
+- [Motion](#motion) (12/18)
+- [Looks](#looks) (2/20)
+- [Sound](#sound) (0/9)
+- [Events](#events) (1/8)
+- [Control](#control) (6/11)
+- [Sensing](#sensing) (8/18)
+- [Operators](#operators) (15/18)
+- [Variables](#variables) (0/4)
+- [Lists](#lists) (0/11)
+- [Pen](#pen) (0/9)
 
 ## Motion
 | Scratch | C | Implemented | Notes |
@@ -69,7 +84,7 @@ I don't plan any support for audio for a while!
 ## Events
 | Scratch | C | Implemented | Notes |
 |------------------------|----------------------------|:----------:|-------------------------------------------|
-| When flag clicked | - | ✔️ | This is the entry point of the program. |
+| When flag clicked | - | ✔️ |  |
 | When `space` key pressed | - | ❌ |  |
 | When this sprite clicked | - | ❌ |  |
 | When backdrop switches to `backdrop` | - | ❌ |  |
@@ -122,7 +137,7 @@ I don't plan any support for audio for a while!
 | `x` - `y` | - | ✔️ |  |
 | `x` * `y` | - | ✔️ |  |
 | `x` / `y` | - | ✔️ |  |
-| Pick random `1` to `10` | - | ✔️ | TODO: Implement a better PRNG (xiroshiro, mersenne twister) |
+| Pick random `1` to `10` | - | ✔️ | TODO: Implement a better PRNG (xoroshiro, mersenne twister, ..) |
 | `x` > `y` | - | ✔️ |  |
 | `x` < `y` | - | ✔️ |  |
 | `x` = `y` | - | ✔️ | |
@@ -172,9 +187,6 @@ I don't plan any support for audio for a while!
 | Set pen `color` to `50` | - | ❌ |  |
 | Change pen size by `1` | - | ❌ | |
 | Set pen size to `1` | - | ❌ |  |
-
-# Requirements
-Python 3.10+
 
 
 

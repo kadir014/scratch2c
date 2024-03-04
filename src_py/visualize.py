@@ -11,8 +11,8 @@
 import pydot
 import PIL.Image
 
-from common import Block, Primitive, PrimitiveType
-from syntaxtree import *
+from .common import Block, Primitive, PrimitiveType
+from .syntaxtree import *
 
 
 PNG_OUT = "out.png"
@@ -67,6 +67,13 @@ def build_graph(graph: pydot.Graph, node: Node) -> int:
     elif isinstance(node, Repeat):
         inner_id = build_graph(graph, node.times)
         graph.add_edge(pydot.Edge(node_id, inner_id, labelfloat=True, label="times", fontsize=9.0, color="gray"))
+
+        inner_id = build_stack(graph, node.body)
+        graph.add_edge(pydot.Edge(node_id, inner_id, labelfloat=True, label="body", fontsize=9.0, color="gray"))
+
+    elif isinstance(node, If):
+        inner_id = build_graph(graph, node.condition)
+        graph.add_edge(pydot.Edge(node_id, inner_id, labelfloat=True, label="condition", fontsize=9.0, color="gray"))
 
         inner_id = build_stack(graph, node.body)
         graph.add_edge(pydot.Edge(node_id, inner_id, labelfloat=True, label="body", fontsize=9.0, color="gray"))

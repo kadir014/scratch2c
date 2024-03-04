@@ -12,7 +12,7 @@
 from dataclasses import dataclass
 from enum import Enum
 
-from common import Block, Primitive, PrimitiveType
+from .common import Block, Primitive, PrimitiveType
 
 
 @dataclass
@@ -24,7 +24,7 @@ class Variable(Node):
     name: str
     id: str
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Variable<{self.name}>"
     
 @dataclass
@@ -32,7 +32,7 @@ class List(Node):
     name: str
     id: str
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"List<{self.name}>"
 
 class LiteralType(Enum):
@@ -45,7 +45,7 @@ class Literal(Node):
     type: LiteralType
     value: str | float
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Literal<{self.type.name}, {self.value}>"
 
 @dataclass
@@ -53,7 +53,7 @@ class Assignment(Node):
     variable: Variable
     expression: Node
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Assignment"
 
 class BinOpType(Enum):
@@ -74,7 +74,7 @@ class BinOp(Node):
     left: Node
     right: Node
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"BinOp<{self.type.name}>"
 
 @dataclass
@@ -82,8 +82,16 @@ class Repeat(Node):
     times: Node
     body: list[Node]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Repeat"
+    
+@dataclass
+class If(Node):
+    condition: Node
+    body: list[Node]
+
+    def __repr__(self) -> str:
+        return f"If"
     
 class ListActionType(Enum):
     CLEAR = 0
@@ -104,8 +112,21 @@ class ListAction(Node):
     param1: Node | None = None
     param2: Node | None = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"ListAction<{self.type.name}, {self.list}>"
+
+class FunctionArgumentType(Enum):
+    ANY = 0
+    BOOL = 1
+
+@dataclass
+class FunctionArgument(Node):
+    type: FunctionArgumentType
+    name: str
+    id: str = ""
+
+    def __repr__(self) -> str:
+        return f"FunctionArgument<{self.type.name}, {self.name}, {self.id}>"
 
 @dataclass
 class FunctionCall(Node):
@@ -113,8 +134,26 @@ class FunctionCall(Node):
     function: str
     arguments: list[Node]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"FunctionCall<{self.function}>"
+
+@dataclass
+class FunctionDefinition(Node):
+    signature: str
+    function: str
+    arguments: list[Node]
+    body: list[Node] | None = None
+
+    def __repr__(self) -> str:
+        return f"FunctionDefinition<{self.function}>"
+    
+@dataclass
+class MotionTurn(Node):
+    angle: Node
+    cw: bool
+
+    def __repr__(self) -> str:
+        return f"MotionTurn"
     
 class PenActionType(Enum):
     DOWN = 0
@@ -126,7 +165,7 @@ class PenActionType(Enum):
 class PenAction(Node):
     type: PenActionType
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"PenAction<{self.type.name}>"
     
 @dataclass
@@ -137,7 +176,7 @@ class PenAssignment(Node):
 class PenColorAssignment(Node):
     color: str
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"PenColorAssignment"
 
 
@@ -157,8 +196,14 @@ def generate_node(block: Block | Primitive) -> Node:
         
         else:
             return Literal(LiteralType.NUMBER, float(block.value))
+        
+    if block.opcode == "motion_turnleft":
+        return MotionTurn(generate_node(block.inputs["DEGREES"]), False)
+    
+    if block.opcode == "motion_turnright":
+        return MotionTurn(generate_node(block.inputs["DEGREES"]), True)
 
-    if block.opcode == "data_setvariableto":
+    elif block.opcode == "data_setvariableto":
         return Assignment(Variable(block.fields["VARIABLE"][0], block.fields["VARIABLE"][1]), generate_node(block.inputs["VALUE"]))
     
     elif block.opcode == "data_changevariableby":
@@ -169,12 +214,27 @@ def generate_node(block: Block | Primitive) -> Node:
         inner_body = []
         generate_stack(inner_body, block.inputs["SUBSTACK"])
         return Repeat(generate_node(block.inputs["TIMES"]), inner_body)
+    
+    elif block.opcode == "control_if":
+        inner_body = []
+        generate_stack(inner_body, block.inputs["SUBSTACK"])
+        return If(generate_node(block.inputs["CONDITION"]), inner_body)
 
     elif block.opcode == "procedures_call":
         arguments = []
         for arg in block.inputs:
             arguments.append(generate_node(block.inputs[arg]))
-        return FunctionCall(block.procedure, block.procedure.replace("%s", "").replace("%b", "").replace(" ", "").strip(), arguments)
+
+        func = block.procedure.replace("%s", "").replace("%b", "").replace(" ", "").strip()
+        return FunctionCall(block.procedure, func, arguments)
+    
+    elif block.opcode == "argument_reporter_string_number":
+        funcarg = FunctionArgument(FunctionArgumentType.ANY, block.fields["VALUE"][0])
+        return funcarg
+    
+    elif block.opcode == "argument_reporter_boolean":
+        funcarg = FunctionArgument(FunctionArgumentType.BOOL, block.fields["VALUE"][0])
+        return funcarg
     
     elif block.opcode == "operator_add":
         return BinOp(BinOpType.ADD, generate_node(block.inputs["NUM1"]), generate_node(block.inputs["NUM2"]))
@@ -226,3 +286,20 @@ def generate_ast(script: Block) -> list[Node]:
     generate_stack(body, script)
 
     return body
+
+def generate_ast_procdef(block: Block) -> FunctionDefinition:
+    proto = block.inputs["custom_block"]
+
+    arguments = []
+    for arg in proto.inputs:
+        argnode = generate_node(proto.inputs[arg])
+        argnode.id = arg
+        arguments.append(argnode)
+
+    funcname = proto.procedure.replace("%s", "").replace("%b", "").replace(" ", "").strip()
+    funcdef = FunctionDefinition(proto.procedure, funcname, arguments)
+
+    funcdef.body = []
+    generate_stack(funcdef.body, block.next)
+
+    return funcdef
