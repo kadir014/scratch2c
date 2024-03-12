@@ -20,17 +20,4 @@
 #define SC_DEG_TO_RAD 0.017453292519943295474371680597869272
 
 
-/**
- * @brief Return random sc_real in range [lower, higher).
- * 
- * @param lower Lower limit
- * @param higher Higher limit
- * @return sc_float 
- */
-static inline sc_real sc_random(sc_real lower, sc_real higher) {
-    sc_real normal = rand() / (float)RAND_MAX;
-    return lower + normal * (higher - lower);
-}
-
-
 #endif

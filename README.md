@@ -25,9 +25,9 @@ Scratch blocks currently implemented in the C API:
 - [Looks](#looks) (2/20)
 - [Sound](#sound) (0/9)
 - [Events](#events) (1/8)
-- [Control](#control) (6/11)
+- [Control](#control) (6/10)
 - [Sensing](#sensing) (8/18)
-- [Operators](#operators) (15/18)
+- [Operators](#operators) (18/18)
 - [Variables](#variables) (0/4)
 - [Lists](#lists) (0/11)
 - [Pen](#pen) (0/9)
@@ -102,7 +102,6 @@ I don't plan any support for audio for a while!
 | If `condition` then, else | - | ✔️ |  |
 | Wait until `condition` | - | ❌ |  |
 | Repeat until `condition` | - | ✔️ |  |
-| While `condition` | - | ✔️ |  |
 | Stop `all` | - | ✔️ | Only for exiting the program. |
 | When I start as a clone | - | ❌ |  |
 | Create clone of `myself` | - | ❌ |  |
@@ -118,12 +117,12 @@ I don't plan any support for audio for a while!
 | Ask `something` and wait | - | ❌ |  |
 | Answer | - | ❌ |  |
 | Key `space` pressed? | - | ❌ |  |
-| Mouse down? | `mouse_pressed` | ✔️ |  |
-| Mouse x | `mouse_x` | ✔️ |  |
-| Mouse y | `mouse_y` | ✔️ |  |
+| Mouse down? | `scEngine.mouse_pressed` | ✔️ |  |
+| Mouse x | `scEngine.mouse_x` | ✔️ |  |
+| Mouse y | `scEngine.mouse_y` | ✔️ |  |
 | Set drag mode `draggable` | - | ❌ |  |
 | Loudness | - | ❌ |  |
-| Timer | - | ✔️ |  |
+| Timer | `scEngine.clock_timer` | ✔️ |  |
 | Reset timer | - | ✔️ |  |
 | `value` of `target` | - | ❌ |  |
 | Current `date` | `sc_curent_date()` | ✔️ |  |
@@ -133,24 +132,24 @@ I don't plan any support for audio for a while!
 ## Operators
 | Scratch | C | Implemented | Notes |
 |------------------------|----------------------------|:----------:|-------------------------------------------|
-| `x` + `y` | - | ✔️ |  |
-| `x` - `y` | - | ✔️ |  |
-| `x` * `y` | - | ✔️ |  |
-| `x` / `y` | - | ✔️ |  |
-| Pick random `1` to `10` | - | ✔️ | TODO: Implement a better PRNG (xoroshiro, mersenne twister, ..) |
-| `x` > `y` | - | ✔️ |  |
-| `x` < `y` | - | ✔️ |  |
-| `x` = `y` | - | ✔️ | |
-| `x` and `y` | - | ✔️ |  |
-| `x` or `y` | - | ✔️ |  |
-| Not `x` | - | ✔️ |  |
-| Join `apple` `banana` | - | ❌ |  |
-| Letter `1` of `apple` | - | ✔️ |  |
-| Length of `apple` | - | ❌ |  |
-| `apple` containts `a`? | - | ❌ |  |
-| `x` mod `y` | - | ✔️ |  |
-| round `x` | - | ✔️ |  |
-| `abs` of `x` | - | ✔️ |  |
+| `x` + `y` | `sc_op_add()` | ✔️ |  |
+| `x` - `y` | `sc_op_sub()` | ✔️ |  |
+| `x` * `y` | `sc_op_mul()` | ✔️ |  |
+| `x` / `y` | `sc_op_div()` | ✔️ |  |
+| Pick random `1` to `10` | `sc_op_rand()` | ✔️ | The PRNG algorithm is changable. |
+| `x` > `y` | `sc_op_gt()` | ✔️ |  |
+| `x` < `y` | `sc_op_lt()` | ✔️ |  |
+| `x` = `y` | `sc_op_eq()` | ✔️ | |
+| `x` and `y` | `sc_op_and()` | ✔️ |  |
+| `x` or `y` | `sc_op_or()` | ✔️ |  |
+| Not `x` | `sc_op_not()` | ✔️ |  |
+| Join `apple` `banana` | `sc_op_join()` | ✔️ |  |
+| Letter `1` of `apple` | `sc_op_index()` | ✔️ |  |
+| Length of `apple` | `sc_op_len()` | ✔️ |  |
+| `apple` containts `a`? | `sc_op_in()` | ✔️ |  |
+| `x` mod `y` | `sc_op_mod()` | ✔️ |  |
+| round `x` | `sc_op_round()` | ✔️ |  |
+| `abs, ...` of `x` | `sc_op_[abs, ...]()` | ✔️ |  |
 
 ## Variables
 | Scratch | C | Implemented | Notes |

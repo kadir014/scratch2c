@@ -185,7 +185,7 @@ scEngine *engine;
     for i, target in enumerate(targets):
         costumes_code = ""
         for j, costume in enumerate(target.costumes):
-            costumes_code += f"targets[{i}].costumes[{j}] = scCostume_load(engine->renderer, \"project_data/{costume.file}\");"
+            costumes_code += f"targets[{i}].costumes[{j}] = scCostume_load(\"project_data/{costume.file}\");"
 
         targets_code += f"""
     targets[{i}] = (scSprite){{

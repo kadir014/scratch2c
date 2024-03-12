@@ -30,9 +30,7 @@
 #define sc_op_and(a, b) _SC_ARITHMETIC((a), (b), &&)
 #define sc_op_or(a, b) _SC_ARITHMETIC((a), (b), ||)
 
-static inline scVariable SC_FASTCALL sc_op_rand(scVariable a, scVariable b) {
-    return SC_VARIABLE_REAL(sc_random(scVariable_cast(a, scVariableType_REAL).value_real, scVariable_cast(b, scVariableType_REAL).value_real));
-}
+#define sc_op_rand(a, b) SC_VARIABLE_REAL(scEngine_random_real(engine, scVariable_cast(a, scVariableType_REAL).value_real, scVariable_cast(b, scVariableType_REAL).value_real))
 
 static inline scVariable SC_FASTCALL sc_op_not(scVariable a) {
     return SC_VARIABLE_REAL(!(scVariable_cast(a, scVariableType_REAL).value_real));

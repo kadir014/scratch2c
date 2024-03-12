@@ -14,5 +14,4 @@ from src_py.builder import build
 
 if __name__ == "__main__":
     transpile("test.sb3")
-    #transpile("SCRATCHVMTEST002.sb3")
     build()

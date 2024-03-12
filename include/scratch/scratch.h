@@ -17,6 +17,7 @@
 #include "scratch/platform.h"
 #include "scratch/types.h"
 #include "scratch/math.h"
+#include "scratch/prng.h"
 
 #include "scratch/engine.h"
 #include "scratch/project.h"

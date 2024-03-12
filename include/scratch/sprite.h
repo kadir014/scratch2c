@@ -16,23 +16,24 @@
 
 
 typedef struct {
-    SDL_Texture *texture;
+    SDL_Surface *surface;
     const char *filename;
 } scCostume;
 
 static inline scCostume SC_FASTCALL scCostume_load(
-    SDL_Renderer *renderer,
     const char *filepath
 ) {
-    SDL_Texture *texture = IMG_LoadTexture(renderer, filepath);
-    if (!texture) {
-        fprintf(stderr, IMG_GetError());
-        exit(EXIT_FAILURE);
-    }
+    // SDL_Texture *texture = IMG_LoadTexture(renderer, filepath);
+    // if (!texture) {
+    //     fprintf(stderr, IMG_GetError());
+    //     exit(EXIT_FAILURE);
+    // }
+
+    SDL_Surface *surf = IMG_Load(filepath);
 
     return (scCostume){
         .filename=filepath,
-        .texture=texture
+        .surface=surf
     };
 }
 

@@ -17,6 +17,9 @@
 #include <stdbool.h>
 #include <time.h>
 
+#include <glad/glad.h>
+#include <GL/gl.h>
+
 #define SDL_MAIN_HANDLED
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
