@@ -17,13 +17,12 @@
 #include <stdbool.h>
 #include <time.h>
 
-#include <glad/glad.h>
-#include <GL/gl.h>
+#include <glad/gl.h>
 
 #define SDL_MAIN_HANDLED
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_ttf.h>
-#include <SDL2/SDL_image.h>
+#include <SDL.h>
+#include <SDL_ttf.h>
+#include <SDL_image.h>
 
 #include "scratch/core/platform.h"
 #include "scratch/core/types.h"

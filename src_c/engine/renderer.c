@@ -123,7 +123,7 @@ scRenderer *SC_FASTCALL scRenderer_new(
     }
     SDL_GL_MakeCurrent(window, renderer->ctx);
 
-    if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
+    if (!gladLoaderLoadGL()) {
         fprintf(stderr, "Failed to initialize GLAD.\n");
         return NULL;
     }

@@ -11,7 +11,7 @@ extract_project.py
 lines_of_code.py
 *_manual.c
 out.png
-external/
+subprojects/
 
 # Python
 __pycache__/
