@@ -13,6 +13,7 @@ import zipfile
 import json
 import re
 from argparse import Namespace
+from time import perf_counter
 
 from .common import (
     Block,
@@ -126,6 +127,7 @@ def parse(project: dict) -> Project:
     )
 
 def transpile(args: Namespace) -> None:
+    start = perf_counter()
     info(f"Parsing {FG.yellow}'{args.filepath}'{RESET}")
 
     if not os.path.exists("project_data"):
@@ -144,6 +146,10 @@ def transpile(args: Namespace) -> None:
     with open("generated.c", "w") as file:
         file.write(generate_code(project))
 
-    done("Transpilation successful")
-
+    end = perf_counter()
+    elapsed = end - start
+    if elapsed <= 0.025:
+        done(f"Transpilation finished in {FG.yellow}{round(elapsed * 1000.0, 2)}ms{RESET}")
+    else:
+        done(f"Transpilation finished in {FG.yellow}{round(elapsed, 2)}s{RESET}")
     

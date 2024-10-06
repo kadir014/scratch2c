@@ -8,9 +8,9 @@ Everything is currently _very_ experimental 😵
 To transpile and build your Scratch project follow the instructions.
 
 **❗ Prerequisites:**
-- Python 3.10+
-- GCC/Clang on Linux
-- MinGW (should be under MSYS2/UCRT) on Windows
+- Python 3.9+
+- Meson (_[How to get Meson](https://mesonbuild.com/Getting-meson.html)_)
+- C compiler
 
 Clone the project and enter the dir
 ```
@@ -18,7 +18,7 @@ $ git clone https://github.com/kadir014/scratch2c.git
 $ cd ./scratch2c
 ```
 
-Run the transpiler. This will parse `yourproject.sb3`, transpile and then build.
+Run the transpiler. This will parse `yourproject.sb3`, transpile and then build. You can also use `-h` flag for help.
 ```
 $ python scratch2c.py yourproject.sb3
 ```

@@ -28,7 +28,7 @@ def build(args: Namespace) -> None:
 
     start = perf_counter()
     subprocess.run("meson setup build --buildtype=debug", shell=True)
-    result = subprocess.run("meson compile -C build")
+    result = subprocess.run(f"meson compile -{'v' if args.verbose else ''}C build")
     end = perf_counter()
 
     if result.returncode == 0:
@@ -36,6 +36,7 @@ def build(args: Namespace) -> None:
         done(f"Compilation finished in {FG.yellow}{round(end - start, 2)}s{RESET}")
 
         if os.path.exists(BUILD_PATH):
+            shutil.rmtree(BUILD_PATH / "assets", True)
             os.mkdir(BUILD_PATH / "assets")
             for *_, files in os.walk(BASE_PATH / "assets"):
                 for file in files:
@@ -44,8 +45,10 @@ def build(args: Namespace) -> None:
                         BUILD_PATH / "assets" / file
                     )
 
+            shutil.rmtree(BUILD_PATH / "project_data", True)
             os.replace(BASE_PATH / "project_data", BUILD_PATH / "project_data")
 
+            shutil.rmtree(BUILD_PATH / "shaders", True)
             os.mkdir(BUILD_PATH / "shaders")
             for *_, files in os.walk(SRC_PATH / "shaders"):
                 for file in files:
@@ -53,13 +56,6 @@ def build(args: Namespace) -> None:
                         SRC_PATH / "shaders" / file,
                         BUILD_PATH / "shaders" / file
                     )
-
-            info("Running the project binary")
-            result = subprocess.run(BUILD_PATH / "project.exe")
-            if result.returncode == 0:
-                done(f"Project binary exited with code {result.returncode}")
-            else:
-                fail(f"Project binary exited with code {result.returncode}")
     
     else:
         if args.verbose: print()
