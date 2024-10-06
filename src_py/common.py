@@ -83,3 +83,9 @@ class Project:
     vm_ver: str
     user_agent: str
     targets: list[Target]
+
+
+def validate_variable_name(name: str) -> str:
+    name = name.replace(" ", "_")
+    # startswith digit
+    return name

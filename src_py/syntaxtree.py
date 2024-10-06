@@ -12,7 +12,7 @@
 from dataclasses import dataclass
 from enum import Enum
 
-from .common import Block, Primitive, PrimitiveType
+from .common import Block, Primitive, PrimitiveType, validate_variable_name
 
 
 @dataclass
@@ -117,12 +117,37 @@ class Repeat(Node):
         return f"Repeat"
     
 @dataclass
+class RepeatUntil(Node):
+    condition: Node
+    body: list[Node]
+    
+@dataclass
 class If(Node):
     condition: Node
     body: list[Node]
 
     def __repr__(self) -> str:
         return f"If"
+    
+@dataclass
+class IfElse(Node):
+    condition: Node
+    body_if: list[Node]
+    body_else: list[Node]
+
+class StopOption(Enum):
+    THIS_SCRIPT = 0
+
+@dataclass
+class Stop(Node):
+    option: StopOption
+    
+class SensingReporterType(Enum):
+    DAYSSINCE2000 = 0
+
+@dataclass
+class SensingReporter(Node):
+    type: SensingReporterType
     
 class ListActionType(Enum):
     CLEAR = 0
@@ -135,6 +160,9 @@ class ListActionType(Enum):
     ITEM = 6
     ITEM_NO = 7
     CONTAINS = 8
+
+    INSERT = 9
+    REPLACE = 10
     
 @dataclass
 class ListAction(Node):
@@ -142,6 +170,7 @@ class ListAction(Node):
     list: List
     param1: Node | None = None
     param2: Node | None = None
+    param3: Node | None = None
 
     def __repr__(self) -> str:
         return f"ListAction<{self.type.name}, {self.list}>"
@@ -186,6 +215,13 @@ class MotionTurn(Node):
     def __repr__(self) -> str:
         return f"MotionTurn"
     
+@dataclass
+class MotionMove(Node):
+    steps: Node
+
+    def __repr__(self) -> str:
+        return f"MotionMove"
+    
 class PenActionType(Enum):
     DOWN = 0
     UP = 1
@@ -214,10 +250,10 @@ class PenColorAssignment(Node):
 def generate_node(block: Block | Primitive) -> Node:
     if isinstance(block, Primitive):
         if block.type == PrimitiveType.VARIABLE:
-            return Variable(block.value, block.id)
+            return Variable(validate_variable_name(block.value), block.id)
         
         elif block.type == PrimitiveType.LIST:
-            return List(block.value, block.id)
+            return List(validate_variable_name(block.value), block.id)
         
         elif block.type == PrimitiveType.STRING:
             return Literal(LiteralType.STRING, block.value)
@@ -231,14 +267,20 @@ def generate_node(block: Block | Primitive) -> Node:
     if block.opcode == "motion_turnleft":
         return MotionTurn(generate_node(block.inputs["DEGREES"]), False)
     
-    if block.opcode == "motion_turnright":
+    elif block.opcode == "motion_turnright":
         return MotionTurn(generate_node(block.inputs["DEGREES"]), True)
+    
+    elif block.opcode == "motion_movesteps":
+        return MotionMove(generate_node(block.inputs["STEPS"]))
 
     elif block.opcode == "data_setvariableto":
-        return Assignment(Variable(block.fields["VARIABLE"][0], block.fields["VARIABLE"][1]), generate_node(block.inputs["VALUE"]))
+        return Assignment(
+            Variable(validate_variable_name(block.fields["VARIABLE"][0]), block.fields["VARIABLE"][1]),
+            generate_node(block.inputs["VALUE"])
+        )
     
     elif block.opcode == "data_changevariableby":
-        var = Variable(block.fields["VARIABLE"][0], block.fields["VARIABLE"][1])
+        var = Variable(validate_variable_name(block.fields["VARIABLE"][0]), block.fields["VARIABLE"][1])
         return Assignment(var, BinOp(BinOpType.ADD, var, generate_node(block.inputs["VALUE"])))
 
     elif block.opcode == "control_repeat":
@@ -246,10 +288,29 @@ def generate_node(block: Block | Primitive) -> Node:
         generate_stack(inner_body, block.inputs["SUBSTACK"])
         return Repeat(generate_node(block.inputs["TIMES"]), inner_body)
     
+    elif block.opcode == "control_repeat_until":
+        inner_body = []
+        generate_stack(inner_body, block.inputs["SUBSTACK"])
+        return RepeatUntil(generate_node(block.inputs["CONDITION"]), inner_body)
+    
     elif block.opcode == "control_if":
         inner_body = []
         generate_stack(inner_body, block.inputs["SUBSTACK"])
         return If(generate_node(block.inputs["CONDITION"]), inner_body)
+    
+    elif block.opcode == "control_if_else":
+        inner_body_if = []
+        inner_body_else = []
+        generate_stack(inner_body_if, block.inputs["SUBSTACK"])
+        generate_stack(inner_body_else, block.inputs["SUBSTACK2"])
+        return IfElse(generate_node(block.inputs["CONDITION"]), inner_body_if, inner_body_else)
+    
+    elif block.opcode == "control_stop":
+        if block.fields["STOP_OPTION"][0] == "this script":
+            return Stop(StopOption.THIS_SCRIPT)
+    
+    elif block.opcode == "sensing_dayssince2000":
+        return SensingReporter(SensingReporterType.DAYSSINCE2000)
 
     elif block.opcode == "procedures_call":
         arguments = []
@@ -337,11 +398,38 @@ def generate_node(block: Block | Primitive) -> Node:
         return UnaryOp(type_, generate_node(block.inputs["NUM"]))
 
     elif block.opcode == "data_deletealloflist":
-        return ListAction(ListActionType.CLEAR, List(block.fields["LIST"][0], block.fields["LIST"][1]))
+        return ListAction(ListActionType.CLEAR, validate_variable_name(List(block.fields["LIST"][0]), block.fields["LIST"][1]))
+    
+    elif block.opcode == "data_lengthoflist":
+        return ListAction(ListActionType.LENGTH, validate_variable_name(List(block.fields["LIST"][0]), block.fields["LIST"][1]))
+    
+    elif block.opcode == "data_showlist":
+        return ListAction(ListActionType.SHOW, validate_variable_name(List(block.fields["LIST"][0]), block.fields["LIST"][1]))
+    
+    elif block.opcode == "data_hidelist":
+        return ListAction(ListActionType.HIDE, validate_variable_name(List(block.fields["LIST"][0]), block.fields["LIST"][1]))
     
     elif block.opcode == "data_addtolist":
-        return ListAction(ListActionType.ADD, List(block.fields["LIST"][0], block.fields["LIST"][1]), generate_node(block.inputs["ITEM"]))
+        return ListAction(ListActionType.ADD, validate_variable_name(List(block.fields["LIST"][0]), block.fields["LIST"][1]), generate_node(block.inputs["ITEM"]))
     
+    elif block.opcode == "data_deleteoflist":
+        return ListAction(ListActionType.REMOVE, validate_variable_name(List(block.fields["LIST"][0]), block.fields["LIST"][1]), generate_node(block.inputs["INDEX"]))
+    
+    elif block.opcode == "data_itemoflist":
+        return ListAction(ListActionType.ITEM, validate_variable_name(List(block.fields["LIST"][0]), block.fields["LIST"][1]), generate_node(block.inputs["INDEX"]))
+    
+    elif block.opcode == "data_itemnumoflist":
+        return ListAction(ListActionType.ITEM_NO, validate_variable_name(List(block.fields["LIST"][0]), block.fields["LIST"][1]), generate_node(block.inputs["ITEM"]))
+    
+    elif block.opcode == "data_listcontainsitem":
+        return ListAction(ListActionType.CONTAINS, validate_variable_name(List(block.fields["LIST"][0]), block.fields["LIST"][1]), generate_node(block.inputs["ITEM"]))
+
+    elif block.opcode == "data_insertatlist":
+        return ListAction(ListActionType.INSERT, validate_variable_name(List(block.fields["LIST"][0]), block.fields["LIST"][1]), generate_node(block.inputs["ITEM"]), generate_node(block.inputs["INDEX"]))
+
+    elif block.opcode == "data_replaceitemoflist":
+        return ListAction(ListActionType.REPLACE, validate_variable_name(List(block.fields["LIST"][0]), block.fields["LIST"][1]), generate_node(block.inputs["INDEX"]), generate_node(block.inputs["ITEM"]))
+
     elif block.opcode == "pen_penDown":
         return PenAction(PenActionType.DOWN)
     

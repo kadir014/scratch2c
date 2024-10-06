@@ -25,8 +25,8 @@
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_image.h>
 
-#include "scratch/platform.h"
-#include "scratch/types.h"
+#include "scratch/core/platform.h"
+#include "scratch/core/types.h"
 
 
 #if defined(SC_PLATFORM_WEB)

@@ -12,6 +12,7 @@ import os
 import zipfile
 import json
 import re
+from argparse import Namespace
 
 from .common import (
     Block,
@@ -21,7 +22,8 @@ from .common import (
     TargetList,
     Costume,
     Target,
-    Project
+    Project,
+    validate_variable_name
 )
 from .codegen import generate_code
 from .terminal import info, done, FG, RESET
@@ -83,8 +85,8 @@ def parse(project: dict) -> Project:
 
     for target_d in project["targets"]:
         costumes = [Costume(c["name"], c["md5ext"]) for c in target_d["costumes"]]
-        variables = [TargetVariable(key, target_d["variables"][key][0], target_d["variables"][key][1]) for key in target_d["variables"]]
-        lists = [TargetList(key, target_d["lists"][key][0], target_d["lists"][key][1]) for key in target_d["lists"]]
+        variables = [TargetVariable(key, validate_variable_name(target_d["variables"][key][0]), target_d["variables"][key][1]) for key in target_d["variables"]]
+        lists = [TargetList(key, validate_variable_name(target_d["lists"][key][0]), target_d["lists"][key][1]) for key in target_d["lists"]]
         target = Target(target_d["isStage"], costumes, variables, lists)
         target.scripts = []
         target.procedures = []
@@ -123,15 +125,17 @@ def parse(project: dict) -> Project:
         targets
     )
 
-def transpile(filepath: str) -> None:
-    info(f"Parsing {FG.yellow}'{filepath}'{RESET}")
+def transpile(args: Namespace) -> None:
+    info(f"Parsing {FG.yellow}'{args.filepath}'{RESET}")
 
     if not os.path.exists("project_data"):
         os.mkdir("project_data")
 
-    with zipfile.ZipFile(filepath, "r") as sb3zip:
+    with zipfile.ZipFile(args.filepath, "r") as sb3zip:
         project_json = json.loads(sb3zip.read("project.json"))
         sb3zip.extractall("project_data")
+
+    if args.c: return
 
     project = parse(project_json)
 

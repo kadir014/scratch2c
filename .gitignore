@@ -3,12 +3,15 @@
 build/
 deps/
 dev/
+tests/
 project_data/
 generated.c
 project.json
 extract_project.py
+lines_of_code.py
 *_manual.c
 out.png
+external/
 
 # Python
 __pycache__/

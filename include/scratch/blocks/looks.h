@@ -13,7 +13,7 @@
 #define _SCRATCH_LOOKS_H
 
 #include "scratch/_scratch.h"
-#include "scratch/sprite.h"
+#include "scratch/engine/sprite.h"
 
 
 /**

@@ -13,8 +13,8 @@
 #define _SCRATCH_OPERATORS_H
 
 #include "scratch/_scratch.h"
-#include "scratch/variable.h"
-#include "scratch/math.h"
+#include "scratch/blocks/variable.h"
+#include "scratch/core/math.h"
 
 
 #define _SC_ARITHMETIC(a, b, op) \
@@ -62,6 +62,10 @@ static inline scVariable SC_FASTCALL sc_op_round(scVariable a) {
 
 static inline scVariable SC_FASTCALL sc_op_abs(scVariable a) {
     return SC_VARIABLE_REAL(sc_fabs(scVariable_cast(a, scVariableType_REAL).value_real));
+}
+
+static inline scVariable SC_FASTCALL sc_op_sqrt(scVariable a) {
+    return SC_VARIABLE_REAL(sc_sqrt(scVariable_cast(a, scVariableType_REAL).value_real));
 }
 
 

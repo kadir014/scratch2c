@@ -13,7 +13,7 @@
 #define _SCRATCH_MOTION_H
 
 #include "scratch/_scratch.h"
-#include "scratch/sprite.h"
+#include "scratch/engine/sprite.h"
 
 
 /**
@@ -24,8 +24,8 @@
  */
 static inline void SC_FASTCALL scSprite_move(scSprite *sprite, sc_real steps) {
     // TODO: No need for trig every function call if we store direction vector instead of angle internally.
-    sprite->x += sc_cos(sprite->angle);
-    sprite->y += sc_sin(sprite->angle);
+    sprite->x += sc_cos(sprite->angle * SC_DEG_TO_RAD) * steps;
+    sprite->y += sc_sin(sprite->angle * SC_DEG_TO_RAD) * steps;
 }
 
 /**

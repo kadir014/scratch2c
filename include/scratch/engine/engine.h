@@ -13,9 +13,9 @@
 #define _SCRATCH_ENGINE_H
 
 #include "scratch/_scratch.h"
-#include "scratch/project.h"
-#include "scratch/renderer.h"
-#include "scratch/prng.h"
+#include "scratch/engine/project.h"
+#include "scratch/engine/renderer.h"
+#include "scratch/core/prng.h"
 
 
 typedef struct {

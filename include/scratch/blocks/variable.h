@@ -13,7 +13,6 @@
 #define _SCRATCH_VARIABLE_H
 
 #include "scratch/_scratch.h"
-#include "scratch/sprite.h"
 
 
 typedef enum {

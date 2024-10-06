@@ -13,6 +13,7 @@ import subprocess
 import shutil
 from pathlib import Path
 from time import perf_counter
+from argparse import Namespace
 
 from .terminal import info, done, fail, FG, RESET
 
@@ -37,7 +38,7 @@ for root, _, files in os.walk(EXTERNAL_PATH / "src"):
             srcs.append(os.path.join(root, file))
 
 
-def build(quiet: bool = False) -> None:
+def build(args: Namespace) -> None:
     info("Compiling")
 
     if os.path.exists(BUILD_PATH):
@@ -47,7 +48,7 @@ def build(quiet: bool = False) -> None:
     os.chdir(BUILD_PATH)
 
     compiler = "gcc"
-    options = "-std=c11 -g3 -Wall -march=native"
+    options = "-std=c11 -O1 -g3 -Wall -Wextra -march=native"
     binary = "project.exe"
 
     libs = [
@@ -64,17 +65,17 @@ def build(quiet: bool = False) -> None:
     ]
 
     compile_cmd = f"{compiler} {options} -o {binary} {' '.join(str(i) for i in srcs)} -I{' -I'.join(str(i) for i in includes)} -L{' -L'.join(str(i) for i in libs)} {links}"
-    if not quiet: print(compile_cmd, "\n")
+    if args.verbose: print(f"\n{compile_cmd}\n")
 
     start = perf_counter()
-    if quiet:
+    if not args.verbose:
         result = subprocess.run(compile_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     else:
         result = subprocess.run(compile_cmd, shell=True)
     end = perf_counter()
 
     if result.returncode == 0:
-        if not quiet: print()
+        if args.verbose: print()
         done(f"Compilation finished in {FG.yellow}{round(end - start, 2)}s{RESET}")
 
         if os.path.exists(binary):
@@ -92,6 +93,14 @@ def build(quiet: bool = False) -> None:
 
             os.replace(BASE_PATH / "project_data", BUILD_PATH / "project_data")
 
+            os.mkdir(BUILD_PATH / "shaders")
+            for *_, files in os.walk(SRC_PATH / "shaders"):
+                for file in files:
+                    shutil.copyfile(
+                        SRC_PATH / "shaders" / file,
+                        BUILD_PATH / "shaders" / file
+                    )
+
             info("Running the project binary")
             result = subprocess.run(binary)
             if result.returncode == 0:
@@ -100,5 +109,5 @@ def build(quiet: bool = False) -> None:
                 fail(f"Project binary exited with code {result.returncode}")
     
     else:
-        print()
+        if args.verbose: print()
         fail(f"Compilation failed with code {FG.yellow}{result.returncode}{RESET}")

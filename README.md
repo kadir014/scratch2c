@@ -1,14 +1,15 @@
 # scratch2c
-Scratch3 interface in C and transpiler.
-The C API for Scratch uses SDL2 and its extensions.
+Scratch3 to C transpiler and ecosystem.
+
+Everything is currently _very_ experimental 😵
 
 
 # Instructions
-To transpile and build your Scratch project follow these instructions:
+To transpile and build your Scratch project follow the instructions.
 
 **❗ Prerequisites:**
 - Python 3.10+
-- GCC (Clang might work as well) on Linux
+- GCC/Clang on Linux
 - MinGW (should be under MSYS2/UCRT) on Windows
 
 Clone the project and enter the dir
@@ -17,6 +18,10 @@ $ git clone https://github.com/kadir014/scratch2c.git
 $ cd ./scratch2c
 ```
 
+Run the transpiler. This will parse `yourproject.sb3`, transpile and then build.
+```
+$ python scratch2c.py yourproject.sb3
+```
 
 
 # Blocks
@@ -102,7 +107,7 @@ I don't plan any support for audio for a while!
 | If `condition` then, else | - | ✔️ |  |
 | Wait until `condition` | - | ❌ |  |
 | Repeat until `condition` | - | ✔️ |  |
-| Stop `all` | - | ✔️ | Only for exiting the program. |
+| Stop `all` | - | ✔️ | Only for returning and exiting the program. |
 | When I start as a clone | - | ❌ |  |
 | Create clone of `myself` | - | ❌ |  |
 | Delete this clone | - | ❌ |  |
@@ -186,6 +191,12 @@ I don't plan any support for audio for a while!
 | Set pen `color` to `50` | - | ❌ |  |
 | Change pen size by `1` | - | ❌ | |
 | Set pen size to `1` | - | ❌ |  |
+
+
+
+# Todo
+- Proper error management
+- Array optimization
 
 
 

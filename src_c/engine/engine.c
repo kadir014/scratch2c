@@ -8,7 +8,8 @@
 
 */
 
-#include "scratch/engine.h"
+#include "scratch/engine/engine.h"
+#include "scratch/scratch.h"
 
 
 /**
@@ -20,19 +21,6 @@ static inline void _quit() {
     IMG_Quit();
 }
 
-
-/**
- * @brief Convert Scratch coordinates to screen space.
- * 
- * @param x X
- * @param y Y
- */
-static inline void SC_FASTCALL sc_scratch_to_screen_space(scProject *project, sc_real *x, sc_real *y) {
-    *x += project->stage_width2;
-    *y = -(*y) + project->stage_height2;
-}
-unsigned int g_shader;
-unsigned int g_vao;
 
 scEngine *SC_FASTCALL scEngine_new(scProject project) {
     scEngine *engine = (scEngine *)malloc(sizeof(scEngine));
@@ -61,8 +49,8 @@ scEngine *SC_FASTCALL scEngine_new(scProject project) {
         exit(EXIT_FAILURE);
 	}
 
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
     engine->window = SDL_CreateWindow(
@@ -79,7 +67,7 @@ scEngine *SC_FASTCALL scEngine_new(scProject project) {
         exit(EXIT_FAILURE);
     }
 
-    engine->renderer = scRenderer_new(engine->window);
+    engine->renderer = scRenderer_new(engine->window, project.stage_width, project.stage_height);
     if (!engine->renderer) {
         SDL_DestroyWindow(engine->window);
         _quit();
@@ -89,11 +77,10 @@ scEngine *SC_FASTCALL scEngine_new(scProject project) {
     char title[64];
     sprintf(
         title,
-        "Scratch2C - OpenGL %d.%d %s - %s",
+        "Scratch2C Project - OpenGL %d.%d %s",
         engine->renderer->gl_version.major,
         engine->renderer->gl_version.minor,
-        scRendererGLProfile_as_str(engine->renderer->gl_profile),
-        engine->renderer->gpu_info.name
+        scRendererGLProfile_as_str(engine->renderer->gl_profile)
     );
     SDL_SetWindowTitle(engine->window, title);
     SDL_SetWindowTitle(engine->window, title);
@@ -107,88 +94,35 @@ scEngine *SC_FASTCALL scEngine_new(scProject project) {
         fprintf(stderr, IMG_GetError());
     }
 
+    int gl_major_version, gl_minor_version;
+    SDL_GL_GetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, &gl_major_version);
+    SDL_GL_GetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, &gl_minor_version);
+
+    printf(
+        "Scratch engine initialized\n"
+        "--------------------------\n"
+        "Version: %s\n"
+        "SDL: %d.%d.%d\n"
+        "SDL_IMG: %d.%d.%d\n"
+        "SDL_TTF: %d.%d.%d\n"
+        "OpenGL: %d.%d\n",
+        SC_VERSION_STRING,
+        SDL_MAJOR_VERSION, SDL_MINOR_VERSION, SDL_PATCHLEVEL,
+        SDL_IMAGE_MAJOR_VERSION, SDL_IMAGE_MINOR_VERSION, SDL_IMAGE_PATCHLEVEL,
+        SDL_TTF_MAJOR_VERSION, SDL_TTF_MINOR_VERSION, SDL_TTF_PATCHLEVEL,
+        gl_major_version, gl_minor_version
+    );
+
     engine->is_running = false;
 
     engine->clock_frequency = (double)SDL_GetPerformanceFrequency();
     engine->clock_start = (double)SDL_GetPerformanceCounter() / engine->clock_frequency;
     engine->clock_last = 0.0;
+    engine->clock_timer = 0.0;
 
     engine->mouse_x = 0;
     engine->mouse_y = 0;
     engine->mouse_pressed = false;
-
-    // float vertices[] = {
-    //     -0.5f, -0.5f, 0.0f,
-    //     0.5f, -0.5f, 0.0f,
-    //     0.0f,  0.5f, 0.0f
-    // };
-    float vertices[] = {
-         0.5f,  0.5f, 0.0f,  // Top Right
-         0.5f, -0.5f, 0.0f,  // Bottom Right
-        -0.5f, -0.5f, 0.0f,  // Bottom Left
-        -0.5f, -0.5f, 0.0f,
-        -0.5f,  0.5f, 0.0f,   // Top Left
-         0.5f,  0.5f, 0.0f
-    };
-
-    const char *vertexShaderSource =
-"#version 330 core\n"
-"layout (location = 0) in vec3 aPos;\n"
-"void main()\n"
-"{\n"
-"   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-"}\0";
-
-    unsigned int vertexShader;
-    vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-    glCompileShader(vertexShader);
-
-    int success;
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        fprintf(stderr, "shader compilation error\n");
-        exit(EXIT_FAILURE);
-    }
-
-    const char *fragmentShaderSource =
-"#version 330 core\n"
-"out vec4 FragColor;\n"
-"void main()\n"
-"{\n"
-"   FragColor = vec4(0.0f, 1.0f, 0.2f, 1.0f);\n"
-"}\0";
-
-    unsigned int fragmentShader;
-    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-    glCompileShader(fragmentShader);
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        fprintf(stderr, "shader compilation error\n");
-        exit(EXIT_FAILURE);
-    }
-
-    g_shader = glCreateProgram();
-    glAttachShader(g_shader, vertexShader);
-    glAttachShader(g_shader, fragmentShader);
-    glLinkProgram(g_shader);
-    glGetProgramiv(g_shader, GL_LINK_STATUS, &success);
-    if(!success) {
-        fprintf(stderr, "shader linking error\n");
-        exit(EXIT_FAILURE);
-    }
-
-    glGenVertexArrays(1, &g_vao);
-    glBindVertexArray(g_vao);
-    // 2. copy our vertices array in a buffer for OpenGL to use
-    unsigned int VBO;
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    // 3. then set our vertex attributes pointers
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
 
     return engine;
 }
@@ -226,9 +160,9 @@ void SC_FASTCALL scEngine_tick(scEngine *engine) {
 }
 
 void SC_FASTCALL scEngine_render(scEngine *engine, scProject *project) {
-    glUseProgram(g_shader);
-    glBindVertexArray(g_vao);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    //glUseProgram(g_shader);
+    //glBindVertexArray(g_vao);
+    //glDrawArrays(GL_TRIANGLES, 0, 6);
 
     // for (size_t i = 0; i < project->targets_size; i++) {
     //     scSprite target = project->targets[i];
@@ -266,6 +200,19 @@ void SC_FASTCALL scEngine_render(scEngine *engine, scProject *project) {
     //         SDL_FLIP_NONE
     //     );
     // }
+    engine->renderer->sprite_vao_n = 0;
+    engine->renderer->sprite_vertices_n = 0;
+    for (size_t i = 0; i < project->targets_size; i++) {
+        scSprite *sprite =&project->targets[i];
+        if (sprite->is_stage) continue;
+        scRenderer_add_sprite(engine->renderer, sprite);
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, engine->renderer->sprite_vbo);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, (engine->renderer->sprite_vertices_n) * sizeof(float), engine->renderer->sprite_vertices);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    scRenderer_render(engine->renderer);
 }
 
 void SC_FASTCALL scEngine_clear(scEngine *engine) {

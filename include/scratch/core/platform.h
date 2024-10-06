@@ -19,7 +19,7 @@
 
 */
 
-#if defined(__EMSCRIPTEN__)
+#if defined(__EMSCRIPTEN__) || defined(__wasi__)
 
     #define SC_PLATFORM_WEB
 

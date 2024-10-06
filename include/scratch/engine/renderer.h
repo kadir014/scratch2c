@@ -14,6 +14,7 @@
 
 
 #include "scratch/_scratch.h"
+#include "scratch/engine/sprite.h"
 
 
 typedef enum {
@@ -53,12 +54,32 @@ typedef struct {
     scRendererGLProfile gl_profile;
     scRendererGLVersion gl_version;
     scRendererGPUInfo gpu_info;
+
+    sc_real viewport_w;
+    sc_real viewport_h;
+    sc_real viewport_wh;
+    sc_real viewport_hh;
+
+    sc_uint32 sprite_vao;
+    size_t sprite_vao_n;
+    float *sprite_vertices;
+    size_t sprite_vertices_n;
+    sc_uint32 sprite_vbo;
+    sc_uint32 sprite_uvbo;
+    sc_uint32 sprite_shader;
 } scRenderer;
 
-scRenderer *SC_FASTCALL scRenderer_new(SDL_Window *window);
+scRenderer *SC_FASTCALL scRenderer_new(
+    SDL_Window *window,
+    sc_real viewport_w,
+    sc_real viewport_h
+);
 
 void SC_FASTCALL scRenderer_free(scRenderer *renderer);
 
+void SC_FASTCALL scRenderer_add_sprite(scRenderer *renderer, scSprite *sprite);
+
+void SC_FASTCALL scRenderer_render(scRenderer *renderer);
 
 
 #endif

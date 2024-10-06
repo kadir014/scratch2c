@@ -16,6 +16,15 @@ from .terminal import info
 #from .visualize import plot_ast
 
 
+def is_number(value: str) -> bool:
+    try:
+        float(value)
+        return True
+    
+    except ValueError:
+        return False
+
+
 FILE_DOC = \
 f"""
 /*
@@ -37,7 +46,10 @@ f"""
   
 */
 """.strip()
-        
+
+
+VAR_TABLE = {}
+
 
 def generate_from_node(node: Node, target: Target) -> str:
     if isinstance(node, Literal):
@@ -48,23 +60,39 @@ def generate_from_node(node: Node, target: Target) -> str:
             return f"SC_VARIABLE_STRING(\"{node.value}\")"
         
     elif isinstance(node, Variable):
-        return f"g_{node.name}"
+        return VAR_TABLE[node.id]
 
     elif isinstance(node, Assignment):
-        return f"scVariable_assign(&g_{node.variable.name}, {generate_from_node(node.expression, target)});\n"
+        return f"scVariable_assign(&{VAR_TABLE[node.variable.id]}, {generate_from_node(node.expression, target)});\n"
     
     elif isinstance(node, MotionTurn):
         return f"sprite->angle {('-', '+')[node.cw]}= ({generate_from_node(node.angle, target)}).value_real;\n"
+    
+    elif isinstance(node, MotionMove):
+        return f"scSprite_move(sprite, ({generate_from_node(node.steps, target)}).value_real);"
     
     elif isinstance(node, Repeat):
         inner_code = []
         for inner_node in node.body:
             inner_code.append(generate_from_node(inner_node, target))
 
-        code = f"SC_REPEAT((sc_uint64)({generate_from_node(node.times, target)})) {{\n"
+        code = f"SC_REPEAT((sc_uint64)({generate_from_node(node.times, target)}.value_real)) {{\n"
         for stmt in inner_code:
             code += f"    {stmt}"
         code += "\n}"
+
+        return code
+    
+    elif isinstance(node, RepeatUntil):
+        inner_code = []
+        for inner_node in node.body:
+            inner_code.append(generate_from_node(inner_node, target))
+
+        code = f"while (!({generate_from_node(node.condition, target)}.value_real)) {{\n"
+        for stmt in inner_code:
+            code += f"    {stmt}"
+        code += "\n}"
+
         return code
     
     elif isinstance(node, If):
@@ -72,11 +100,35 @@ def generate_from_node(node: Node, target: Target) -> str:
         for inner_node in node.body:
             inner_code.append(generate_from_node(inner_node, target))
 
-        code = f"if ({generate_from_node(node.condition, target)}) {{\n"
+        code = f"if ({generate_from_node(node.condition, target)}.value_real) {{\n"
         for stmt in inner_code:
             code += f"    {stmt}"
         code += "\n}"
+
         return code
+    
+    elif isinstance(node, IfElse):
+        inner_code_if = []
+        for inner_node in node.body_if:
+            inner_code_if.append(generate_from_node(inner_node, target))
+
+        inner_code_else = []
+        for inner_node in node.body_else:
+            inner_code_else.append(generate_from_node(inner_node, target))
+
+        code = f"if ({generate_from_node(node.condition, target)}.value_real) {{\n"
+        for stmt in inner_code_if:
+            code += f"    {stmt}"
+        code += "\n} else {"
+        for stmt in inner_code_else:
+            code += f"    {stmt}"
+        code += "\n}"
+
+        return code
+    
+    elif isinstance(node, Stop):
+        if node.option == StopOption.THIS_SCRIPT:
+            return f"return;\n"
 
     elif isinstance(node, BinOp):
         left = generate_from_node(node.left, target)
@@ -96,10 +148,54 @@ def generate_from_node(node: Node, target: Target) -> str:
 
         func = f"proc{id(target)}_{node.function}"
 
-        return f"{func}(sprite, {', '.join(args)});\n"
+        if len(args) > 0:
+            return f"{func}(sprite, {', '.join(args)});\n"
+        else:
+            return f"{func}(sprite);\n"
     
     elif isinstance(node, FunctionArgument):
         return f"{node.name}"
+    
+    elif isinstance(node, ListAction):
+        if node.type == ListActionType.CLEAR:
+            return f"scArray_clear({VAR_TABLE[node.list.id]}, NULL);\n"
+        
+        elif node.type == ListActionType.LENGTH:
+            return f"SC_VARIABLE_REAL((sc_real){VAR_TABLE[node.list.id]}->size)"
+        
+        elif node.type == ListActionType.SHOW:
+            return f"\n"
+        
+        elif node.type == ListActionType.HIDE:
+            return f"\n"
+        
+        elif node.type == ListActionType.ADD:
+            return f"scArray_add({VAR_TABLE[node.list.id]}, &{generate_from_node(node.param1, target)});\n"
+        
+        elif node.type == ListActionType.REMOVE:
+            return f"scArray_remove({VAR_TABLE[node.list.id]}, (size_t)({generate_from_node(node.param1, target)}.value_real)-1);\n"
+    
+        elif node.type == ListActionType.ITEM:
+            return f"(*(scVariable *)({VAR_TABLE[node.list.id]}->data[(size_t)({generate_from_node(node.param1, target)}.value_real)-1]))"
+        
+        elif node.type == ListActionType.ITEM_NO:
+            # TODO
+            return f""
+        
+        elif node.type == ListActionType.CONTAINS:
+            # TODO
+            return f""
+        
+        elif node.type == ListActionType.INSERT:
+            # TODO
+            return f""
+        
+        elif node.type == ListActionType.REPLACE:
+            return f"*(scVariable *){VAR_TABLE[node.list.id]}->data[(size_t)({generate_from_node(node.param1, target)}.value_real)-1] = {generate_from_node(node.param2, target)};\n"
+
+    elif isinstance(node, SensingReporter):
+        if node.type == SensingReporterType.DAYSSINCE2000:
+            return f"SC_VARIABLE_REAL(sc_days_since_2000())"
 
 def generate_code(project: Project) -> str:
     targets = project.targets
@@ -119,17 +215,52 @@ scProject project;
 scEngine *engine;
 
 
-/* Global (stage) variables */
+/* Global (stage) variables & lists */
 
 """
 
     stage = [t for t in targets if t.is_stage][0]
 
-    stage_vars_code = ""
+    vars_init = ""
+
     for var in stage.variables:
+        VAR_TABLE[var.id] = f"g_{var.name}"
+
         code += f"scVariable g_{var.name};\n"
-        stage_vars_code += f"g_{var.name}.type = scVariableType_REAL;"
-        stage_vars_code += f"g_{var.name}.value_real = {var.value};\n"
+        vars_init += f"    g_{var.name}.type = scVariableType_REAL;\n"
+        vars_init += f"    g_{var.name}.value_real = {var.value};\n"
+
+    for lst in stage.lists:
+        VAR_TABLE[var.id] = f"g_{lst.name}"
+
+        code += f"scArray *g_{lst.name};\n"
+        vars_init += f"    g_{lst.name} = scArray_new();\n"
+
+        for val in lst.data:
+            if is_number(val): vars_init += f"    scArray_add(g_{lst.name}, &SC_VARIABLE_REAL({val}));\n"
+            else: vars_init +=  f"    scArray_add(g_{lst.name}, &SC_VARIABLE_STRING(\"{val}\"));\n"
+
+    code += "\n/* Sprite variables & lists */\n\n"
+
+    for target in targets:
+        for var in target.variables:
+            var_id = f"sprite{id(target)}_{var.name}"
+            VAR_TABLE[var.id] = var_id
+
+            code += f"scVariable {var_id};\n"
+            vars_init += f"    {var_id}.type = scVariableType_REAL;\n"
+            vars_init += f"    {var_id}.value_real = {var.value};\n"
+
+        for lst in target.lists:
+            lst_id = f"sprite{id(target)}_{lst.name}"
+            VAR_TABLE[lst.id] = lst_id
+
+            code += f"scArray *{lst_id};\n"
+            vars_init += f"    {lst_id} = scArray_new();\n"
+
+            for val in lst.data:
+                if is_number(val): vars_init += f"    scArray_add({lst_id}, &SC_VARIABLE_REAL({val}));\n"
+                else: vars_init +=  f"    scArray_add({lst_id}, &SC_VARIABLE_STRING(\"{val}\"));\n"
 
     code += "\n\n"
 
@@ -138,7 +269,6 @@ scEngine *engine;
         for script in target.procedures:
             if script.opcode == "procedures_definition":
                 funcdef = generate_ast_procdef(script)
-                #plot_ast(funcdef.body)
 
                 inner_code = []
                 for node in funcdef.body:
@@ -150,7 +280,11 @@ scEngine *engine;
                 for arg in funcdef.arguments:
                     args.append(f"scVariable {arg.name}")
 
-                flag_code = f"static void SC_FASTCALL {funcname}(scSprite *sprite, {', '.join(args)}) {{\n"
+                if len(args) > 0:
+                    flag_code = f"static void SC_FASTCALL {funcname}(scSprite *sprite, {', '.join(args)}) {{\n"
+                else:
+                    flag_code = f"static void SC_FASTCALL {funcname}(scSprite *sprite) {{\n"
+
                 for stmt in inner_code:
                     flag_code += f"    {stmt}"
                 flag_code += "\n}"
@@ -209,8 +343,8 @@ int main(int argc, char **argv) {{
     project.metadata.user_agent = \"{project.user_agent}\";
     engine = scEngine_new(project);
 
-    // Initialize global variables
-    {stage_vars_code}
+    // Initialize variables & lists
+{vars_init}
 
     project.targets_size = {len(targets)};
     scSprite targets[{len(targets)}];
